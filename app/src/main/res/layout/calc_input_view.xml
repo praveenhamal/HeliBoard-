@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-License-Identifier: GPL-3.0-only
+    Shown above the numpad keyboard when the calculator toolbar button is tapped.
+    Tap the result button on the right to paste the result at the cursor.
+-->
+<helium314.keyboard.keyboard.calculator.CalcInputView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/calc_input_view"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="6dp"
+    android:gravity="center_vertical"
+    android:visibility="gone">
+
+    <!-- Expression the user is building e.g. "5+3*2" -->
+    <TextView
+        android:id="@+id/calc_expression"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:textSize="18sp"
+        android:singleLine="true"
+        android:ellipsize="start"
+        android:gravity="end|center_vertical"
+        android:paddingEnd="8dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:hint="0"/>
+
+    <!-- Live result preview e.g. "= 10" -->
+    <TextView
+        android:id="@+id/calc_result"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:singleLine="true"
+        android:paddingHorizontal="12dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="end|center_vertical"/>
+
+</helium314.keyboard.keyboard.calculator.CalcInputView>

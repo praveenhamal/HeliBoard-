@@ -1,0 +1,37 @@
+{
+  "version": 3,
+  "artifactType": {
+    "type": "APK",
+    "kind": "Directory"
+  },
+  "applicationId": "helium314.keyboard",
+  "variantName": "runTests",
+  "elements": [
+    {
+      "type": "SINGLE",
+      "filters": [],
+      "attributes": [],
+      "versionCode": 3900,
+      "versionName": "3.9-beta1",
+      "outputFile": "HeliBoard_3.9-beta1-runTests.apk"
+    }
+  ],
+  "elementType": "File",
+  "baselineProfiles": [
+    {
+      "minApi": 28,
+      "maxApi": 30,
+      "baselineProfiles": [
+        "baselineProfiles/1/HeliBoard_3.9-beta1-runTests.dm"
+      ]
+    },
+    {
+      "minApi": 31,
+      "maxApi": 2147483647,
+      "baselineProfiles": [
+        "baselineProfiles/0/HeliBoard_3.9-beta1-runTests.dm"
+      ]
+    }
+  ],
+  "minSdkVersionForDexing": 21
+}
