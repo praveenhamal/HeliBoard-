@@ -1,109 +1,103 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin.utils
 
+import java.util.Locale
+
 /**
- * Evaluates simple math expressions like "5+3*2", "10/4", "50%2".
- * Supports: +  -  *  /  %  with correct operator precedence (* / % before + -).
- * Supports decimal numbers (e.g. 3.5+1.5).
+ * Evaluates simple math expressions like "(5+3)*2", "10/4", "50%".
+ * Supports: +  -  *  /  %  ( ) with correct operator precedence.
  * Returns null on invalid input or divide-by-zero.
- * Zero dependencies, zero cost when not called.
  */
 object MathEvaluator {
 
-    private val VALID_EXPR = Regex("""^\s*-?\d+(\.\d+)?(\s*[+\-*/]\s*-?\d+(\.\d+)?)*\s*$""")
-
     fun evaluate(expression: String): String? {
-        // Pre-process % as percentage (divide by 100), e.g. "5%" -> "5/100"
-        val expr = expression.trim().replace("%", "/100")
-        if (!VALID_EXPR.matches(expr)) return null
+        val expr = expression.trim()
+        if (expr.isEmpty()) return null
         return try {
-            val result = parseExpression(expr.replace(" ", ""))
-            if (result == null || result.isNaN() || result.isInfinite()) return null
+            val result = Parser(expr).parse()
+            if (result.isNaN() || result.isInfinite()) return null
             // Show as integer if no fractional part
-            if (result == kotlin.math.floor(result) && !result.isInfinite())
+            if (result == kotlin.math.floor(result) && result < Long.MAX_VALUE && result > Long.MIN_VALUE)
                 result.toLong().toString()
             else
-                "%.6f".format(result).trimEnd('0').trimEnd('.')
+                "%.6f".format(Locale.US, result).trimEnd('0').trimEnd('.')
         } catch (e: Exception) {
             null
         }
     }
 
-    // Recursive descent: handles + and - at top level
-    private fun parseExpression(expr: String): Double? {
-        val terms = splitOnAddSub(expr) ?: return null
-        var result = parseTerm(terms[0]) ?: return null
-        var i = 1
-        while (i < terms.size - 1) {
-            val op = terms[i]
-            val value = parseTerm(terms[i + 1]) ?: return null
-            result = when (op) {
-                "+" -> result + value
-                "-" -> result - value
-                else -> return null
-            }
-            i += 2
-        }
-        return result
-    }
+    private class Parser(val input: String) {
+        private var pos = -1
+        private var ch = -1
 
-    // Handles * / % 
-    private fun parseTerm(expr: String): Double? {
-        val factors = splitOnMulDiv(expr) ?: return null
-        var result = factors[0].toDoubleOrNull() ?: return null
-        var i = 1
-        while (i < factors.size - 1) {
-            val op = factors[i]
-            val value = factors[i + 1].toDoubleOrNull() ?: return null
-            result = when (op) {
-                "*" -> result * value
-                "/" -> { if (value == 0.0) return null; result / value }
-                else -> return null
-            }
-            i += 2
+        private fun nextChar() {
+            ch = if (++pos < input.length) input[pos].code else -1
         }
-        return result
-    }
 
-    // Split "3+4-2" into ["3", "+", "4", "-", "2"]
-    // Careful not to split on minus signs that are part of negative numbers
-    private fun splitOnAddSub(expr: String): List<String>? {
-        val parts = mutableListOf<String>()
-        var current = StringBuilder()
-        var i = 0
-        while (i < expr.length) {
-            val c = expr[i]
-            if ((c == '+' || c == '-') && i > 0 && expr[i - 1].isDigit()) {
-                parts.add(current.toString())
-                parts.add(c.toString())
-                current = StringBuilder()
+        private fun eat(charToEat: Int): Boolean {
+            while (ch == ' '.code) nextChar()
+            if (ch == charToEat) {
+                nextChar()
+                return true
+            }
+            return false
+        }
+
+        fun parse(): Double {
+            nextChar()
+            val x = parseExpression()
+            if (pos < input.length) throw Exception("Unexpected character: " + ch.toChar())
+            return x
+        }
+
+        // Grammar:
+        // expression = term | expression `+` term | expression `-` term
+        // term = factor | term `*` factor | term `/` factor
+        // factor = `+` factor | `-` factor | `(` expression `)` | number | factor `%`
+
+        private fun parseExpression(): Double {
+            var x = parseTerm()
+            while (true) {
+                if (eat('+'.code)) x += parseTerm()
+                else if (eat('-'.code)) x -= parseTerm()
+                else return x
+            }
+        }
+
+        private fun parseTerm(): Double {
+            var x = parseFactor()
+            while (true) {
+                if (eat('*'.code)) x *= parseFactor()
+                else if (eat('/'.code)) {
+                    val div = parseFactor()
+                    if (div == 0.0) throw Exception("Division by zero")
+                    x /= div
+                } else return x
+            }
+        }
+
+        private fun parseFactor(): Double {
+            if (eat('+'.code)) return parseFactor()
+            if (eat('-'.code)) return -parseFactor()
+
+            var x: Double
+            val startPos = this.pos
+            if (eat('('.code)) {
+                x = parseExpression()
+                if (!eat(')'.code)) throw Exception("Missing closing parenthesis")
+            } else if ((ch >= '0'.code && ch <= '9'.code) || ch == '.'.code) {
+                while ((ch >= '0'.code && ch <= '9'.code) || ch == '.'.code) nextChar()
+                x = input.substring(startPos, this.pos).toDouble()
             } else {
-                current.append(c)
+                throw Exception("Unexpected character: " + ch.toChar())
             }
-            i++
-        }
-        if (current.isEmpty()) return null
-        parts.add(current.toString())
-        return parts
-    }
 
-    // Split "3*4/2" into ["3", "*", "4", "/", "2"]
-    private fun splitOnMulDiv(expr: String): List<String>? {
-        val parts = mutableListOf<String>()
-        var current = StringBuilder()
-        var i = 0
-        while (i < expr.length) {
-            val c = expr[i]
-            if ((c == '*' || c == '/') && i > 0) {
-                parts.add(current.toString())
-                parts.add(c.toString())
-                current = StringBuilder()
-            } else {
-                current.append(c)
+            // Handle percentage as a postfix operator
+            while (eat('%'.code)) {
+                x /= 100.0
             }
-            i++
+
+            return x
         }
-        parts.add(current.toString())
-        return parts
     }
 }

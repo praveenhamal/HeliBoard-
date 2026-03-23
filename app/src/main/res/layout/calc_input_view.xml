@@ -16,7 +16,7 @@
     android:visibility="gone">
 
     <!-- Expression the user is building e.g. "5+3*2" -->
-    <TextView
+    <EditText
         android:id="@+id/calc_expression"
         android:layout_width="0dp"
         android:layout_height="match_parent"
@@ -28,6 +28,11 @@
         android:paddingEnd="8dp"
         android:clickable="true"
         android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:background="@null"
+        android:cursorVisible="true"
+        android:textIsSelectable="false"
+        android:inputType="none"
         android:hint="0"/>
 
     <!-- Live result preview e.g. "= 10" -->

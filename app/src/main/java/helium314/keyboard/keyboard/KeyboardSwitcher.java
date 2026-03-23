@@ -884,25 +884,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         android.view.View calcView = mCurrentInputView.findViewById(R.id.calc_input_view);
         mCalcInputView = (calcView instanceof helium314.keyboard.keyboard.calculator.CalcInputView)
                 ? (helium314.keyboard.keyboard.calculator.CalcInputView) calcView : null;
-        // Wire up tap-on-result → commit the result at the current cursor position
-        if (mCalcInputView != null) {
-            final helium314.keyboard.keyboard.calculator.CalcInputView finalCalcView = mCalcInputView;
-            finalCalcView.setOnResultClicked(() -> {
-                commitCalcResult();
-                return kotlin.Unit.INSTANCE;
-            });
-            
-            // Explicitly bind the click listeners to the text views as well, in case
-            // the parent layout's click listener is intercepted by IME windows.
-            android.view.View resView = mCurrentInputView.findViewById(R.id.calc_result);
-            if (resView != null) {
-                resView.setOnClickListener(v -> resView.post(this::commitCalcResult));
-            }
-            android.view.View expView = mCurrentInputView.findViewById(R.id.calc_expression);
-            if (expView != null) {
-                expView.setOnClickListener(v -> expView.post(this::commitCalcResult));
-            }
-        }
         // Find clipboard edit panel (lives in main_keyboard_frame above the keyboard)
         mKeyboardClipEditPanel = mCurrentInputView.findViewById(R.id.keyboard_clip_edit_panel);
         if (mKeyboardClipEditPanel != null) {

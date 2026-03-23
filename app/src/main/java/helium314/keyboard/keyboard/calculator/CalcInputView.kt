@@ -3,8 +3,9 @@ package helium314.keyboard.keyboard.calculator
 
 import android.content.Context
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
-import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import helium314.keyboard.latin.R
@@ -15,8 +16,8 @@ import helium314.keyboard.latin.settings.Settings
  * Thin bar shown above the numpad when the calculator toolbar key is tapped.
  * Left side shows the expression being built; right side shows the live result.
  *
- * Tapping the result side calls [onResultClicked] (wired by KeyboardSwitcher)
- * so the computed result is committed at the current cursor position.
+ * Swipe on the bar moves the cursor across the expression.
+ * Committing the result is now done solely via the "=" key (or Enter).
  */
 class CalcInputView @JvmOverloads constructor(
     context: Context,
@@ -24,33 +25,48 @@ class CalcInputView @JvmOverloads constructor(
     defStyle: Int = 0
 ) : LinearLayout(context, attrs, defStyle) {
 
-    private var expressionView: TextView? = null
+    private var expressionView: EditText? = null
     private var resultView: TextView? = null
 
     val expression = StringBuilder()
 
-    /**
-     * Called when the user taps any part of the bar.
-     * Wired by KeyboardSwitcher to call commitCalcResult().
-     */
-    var onResultClicked: (() -> Unit)? = null
+    private var initialX = 0f
+    private var lastMoveBy = 0
 
     override fun onFinishInflate() {
         super.onFinishInflate()
         expressionView = findViewById(R.id.calc_expression)
         resultView     = findViewById(R.id.calc_result)
 
-        // Tap ANYWHERE on the bar → commit the result and close calculator.
-        // We use post{} to defer the callback because calling onTextInput() or setKeyboard()
-        // synchronously inside a touch event can crash the IME.
-        isClickable = true
-        isFocusable = false
-        setOnClickListener { post { onResultClicked?.invoke() } }
+        // Cursor movement via swipe
+        val threshold = 20f // pixels per character
+        setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = event.x
+                    lastMoveBy = 0
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val deltaX = event.x - initialX
+                    val moveBy = (deltaX / threshold).toInt()
+                    if (moveBy != lastMoveBy) {
+                        val view = expressionView ?: return@setOnTouchListener true
+                        val currentPos = view.selectionStart
+                        val newPos = (currentPos + (moveBy - lastMoveBy)).coerceIn(0, expression.length)
+                        view.setSelection(newPos)
+                        lastMoveBy = moveBy
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
     fun clear() {
         expression.clear()
-        expressionView?.text = ""
+        expressionView?.setText("")
         resultView?.text = ""
         applyColors()
     }
@@ -70,7 +86,7 @@ class CalcInputView @JvmOverloads constructor(
 
     fun open() {
         expression.clear()
-        expressionView?.text = ""
+        expressionView?.setText("")
         resultView?.text = ""
         applyColors()
         visibility = View.VISIBLE
@@ -79,22 +95,37 @@ class CalcInputView @JvmOverloads constructor(
     fun close() {
         visibility = View.GONE
         expression.clear()
-        expressionView?.text = ""
+        expressionView?.setText("")
         resultView?.text = ""
     }
 
     fun appendChar(char: String): String? {
-        expression.append(char)
-        expressionView?.text = expression.toString()
+        val view = expressionView ?: return null
+        val cursorPos = view.selectionStart.coerceIn(0, expression.length)
+
+        // Prevent consecutive identical operators
+        if ("+-*/%".contains(char) && expression.isNotEmpty()) {
+            val lastChar = if (cursorPos > 0) expression[cursorPos - 1].toString() else ""
+            if (lastChar == char) return currentResult()
+        }
+
+        expression.insert(cursorPos, char)
+        view.setText(expression.toString())
+        view.setSelection((cursorPos + char.length).coerceAtMost(expression.length))
+
         val result = helium314.keyboard.latin.utils.MathEvaluator.evaluate(expression.toString())
         resultView?.text = if (result != null) "= $result" else ""
         return result
     }
 
     fun deleteChar() {
-        if (expression.isNotEmpty()) {
-            expression.deleteCharAt(expression.length - 1)
-            expressionView?.text = expression.toString()
+        val view = expressionView ?: return
+        val cursorPos = view.selectionStart.coerceIn(0, expression.length)
+        if (cursorPos > 0) {
+            expression.deleteCharAt(cursorPos - 1)
+            view.setText(expression.toString())
+            view.setSelection((cursorPos - 1).coerceAtMost(expression.length))
+
             val result = helium314.keyboard.latin.utils.MathEvaluator.evaluate(expression.toString())
             resultView?.text = if (result != null) "= $result" else ""
         }
