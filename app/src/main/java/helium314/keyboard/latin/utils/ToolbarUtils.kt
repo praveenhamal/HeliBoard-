@@ -124,23 +124,11 @@ enum class ToolbarMode {
 
 val toolbarKeyStrings = entries.associateWithTo(EnumMap(ToolbarKey::class.java)) { it.toString().lowercase(Locale.US) }
 
-val defaultToolbarPref by lazy {
-    val default = listOf(SETTINGS, VOICE, CLIPBOARD, UNDO, REDO, SELECT_WORD, COPY, PASTE, LEFT, RIGHT)
-    val others = entries.filterNot { it in default || it == CLOSE_HISTORY }
-    default.joinToString(Separators.ENTRY) { it.name + Separators.KV + true } + Separators.ENTRY +
-            others.joinToString(Separators.ENTRY) { it.name + Separators.KV + false }
-}
+val defaultToolbarPref = "SETTINGS:true|CALCULATOR:true|VOICE:false|CLIPBOARD:true|UNDO:true|REDO:true|SELECT_ALL:true|SELECT_WORD:false|COPY:true|PASTE:true|LEFT:true|RIGHT:true|NUMPAD:false|CUT:false|ONE_HANDED:false|SPLIT:false|INCOGNITO:false|AUTOCORRECT:false|CLEAR_CLIPBOARD:true|EMOJI:false|UP:false|DOWN:false|WORD_LEFT:false|WORD_RIGHT:false|PAGE_UP:false|PAGE_DOWN:false|FULL_LEFT:false|FULL_RIGHT:false|PAGE_START:false|PAGE_END:false"
 
-val defaultPinnedToolbarPref = entries.filterNot { it == CLOSE_HISTORY }.joinToString(Separators.ENTRY) {
-    it.name + Separators.KV + false
-}
+val defaultPinnedToolbarPref = "SELECT_ALL:true|COPY:true|CUT:false|CLIPBOARD:true|VOICE:false|NUMPAD:false|UNDO:false|REDO:false|SETTINGS:false|SELECT_WORD:false|PASTE:false|ONE_HANDED:false|SPLIT:false|INCOGNITO:false|AUTOCORRECT:false|CLEAR_CLIPBOARD:false|EMOJI:false|LEFT:false|RIGHT:false|UP:false|DOWN:false|WORD_LEFT:false|WORD_RIGHT:false|PAGE_UP:false|PAGE_DOWN:false|FULL_LEFT:false|FULL_RIGHT:false|PAGE_START:false|PAGE_END:false|CALCULATOR:false"
 
-val defaultClipboardToolbarPref by lazy {
-    val default = listOf(CLEAR_CLIPBOARD, UP, DOWN, LEFT, RIGHT, UNDO, CUT, COPY, PASTE, SELECT_WORD, CLOSE_HISTORY)
-    val others = entries.filterNot { it in default }
-    default.joinToString(Separators.ENTRY) { it.name + Separators.KV + true } + Separators.ENTRY +
-            others.joinToString(Separators.ENTRY) { it.name + Separators.KV + false }
-}
+val defaultClipboardToolbarPref = "CLEAR_CLIPBOARD:true|UP:false|DOWN:false|LEFT:false|RIGHT:false|UNDO:false|CUT:false|COPY:false|PASTE:true|SELECT_WORD:false|CLOSE_HISTORY:true|VOICE:false|CLIPBOARD:false|NUMPAD:false|REDO:false|SETTINGS:false|SELECT_ALL:false|ONE_HANDED:false|SPLIT:false|INCOGNITO:false|AUTOCORRECT:false|EMOJI:false|WORD_LEFT:false|WORD_RIGHT:false|PAGE_UP:false|PAGE_DOWN:false|FULL_LEFT:false|FULL_RIGHT:false|PAGE_START:false|PAGE_END:false|CALCULATOR:false"
 
 /** add missing keys, typically because a new key has been added */
 fun upgradeToolbarPrefs(prefs: SharedPreferences) {
