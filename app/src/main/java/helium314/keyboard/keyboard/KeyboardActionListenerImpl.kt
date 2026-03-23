@@ -149,6 +149,10 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         KeyboardActionListener.SWIPE_MOVE_CURSOR -> onMoveCursorHorizontally(steps)
         KeyboardActionListener.SWIPE_SWITCH_LANGUAGE -> onLanguageSlide(steps)
         KeyboardActionListener.SWIPE_TOGGLE_NUMPAD -> toggleNumpad(false, false)
+        KeyboardActionListener.SWIPE_TOGGLE_CALC -> {
+            keyboardSwitcher.setCalculatorKeyboard()
+            true
+        }
         else -> false
     }
 
@@ -158,6 +162,10 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         KeyboardActionListener.SWIPE_TOGGLE_NUMPAD -> toggleNumpad(false, false)
         KeyboardActionListener.SWIPE_HIDE_KEYBOARD -> {
             latinIME.requestHideSelf(0)
+            true
+        }
+        KeyboardActionListener.SWIPE_TOGGLE_CALC -> {
+            keyboardSwitcher.setCalculatorKeyboard()
             true
         }
         else -> false
