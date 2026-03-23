@@ -12,7 +12,7 @@ This fork extends the original HeliBoard with the following features:
 ### 🧮 Built-in Calculator Mode
 - A dedicated **Calc button** switches the keyboard into Calculator Mode on the fly
 - Full calculation layout appears inline — no need to open a separate app
-- Press **`=`** or tap the result to confirm — the result is **automatically pasted at the cursor position**
+- Press **`=`**  — the result is **automatically pasted at the cursor position**
 - After pasting, the keyboard **seamlessly returns to ABC mode** — no interruption, no app switching
 
 ### 📋 Enhanced Clipboard Manager
