@@ -1026,6 +1026,7 @@ public class LatinIME extends InputMethodService implements
     void onFinishInputViewInternal(final boolean finishingInput) {
         super.onFinishInputView(finishingInput);
         Log.i(TAG, "onFinishInputView");
+        mKeyboardSwitcher.closeClipEdit();
         cleanupInternalStateForFinishInput();
     }
 
@@ -1111,6 +1112,7 @@ public class LatinIME extends InputMethodService implements
         Log.i(TAG, "hideWindow");
         if (hasSuggestionStripView() && mSettings.getCurrent().mToolbarMode == ToolbarMode.EXPANDABLE)
             mSuggestionStripView.setToolbarVisibility(false);
+        mKeyboardSwitcher.closeClipEdit();
         mKeyboardSwitcher.onHideWindow();
 
         if (TRACE) Debug.stopMethodTracing();

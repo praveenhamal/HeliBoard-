@@ -349,7 +349,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mClipboardHistoryView.setVisibility(View.GONE);
         mClipboardHistoryView.stopClipboardHistory();
         if (mCalcInputView != null) mCalcInputView.close();
-        if (mKeyboardClipEditPanel != null) mKeyboardClipEditPanel.setVisibility(View.GONE);
+        if (mKeyboardClipEditPanel != null && !isShowingClipEdit()) mKeyboardClipEditPanel.setVisibility(View.GONE);
     }
 
     // Implements {@link KeyboardState.SwitchActions}.
@@ -543,6 +543,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             if (!newText.isEmpty()) mEditingHistoryManager.updateClip(mEditingClipId, newText, newTrigger);
         }
         closeClipEdit();
+        setClipboardKeyboard();
     }
 
     public void closeClipEdit() {
@@ -554,8 +555,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mKeyboardView.setKeyboardActionListener(mOriginalKeyboardListener);
             mOriginalKeyboardListener = null;
         }
-        // Return to clipboard view
-        setClipboardKeyboard();
+    }
+
+    public boolean isShowingClipEdit() {
+        return mEditingClipId != -1L;
     }
 
     @Override
@@ -706,12 +709,15 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         // Reload the entire keyboard, and switch to the previous layout
         final boolean wasEmoji = isShowingEmojiPalettes();
         final boolean wasClipboard = isShowingClipboardHistory();
+        final boolean wasClipEdit = isShowingClipEdit();
         loadKeyboard(mLatinIME.getCurrentInputEditorInfo(), Settings.getValues(),
                 mLatinIME.getCurrentAutoCapsState(), mLatinIME.getCurrentRecapitalizeState(), null);
         if (wasEmoji) {
             setEmojiKeyboard();
         } else if (wasClipboard) {
             setClipboardKeyboard();
+        } else if (wasClipEdit) {
+            if (mKeyboardClipEditPanel != null) mKeyboardClipEditPanel.setVisibility(View.VISIBLE);
         }
     }
 
