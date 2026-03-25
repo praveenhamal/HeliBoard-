@@ -1,4 +1,4 @@
-# HeliBoard+ (Enhanced Fork)
+![Screenshot_20260325_221943_Samsung Notes](https://github.com/user-attachments/assets/8a207b44-9203-4c7a-ba3c-6fad54c85286)# HeliBoard+ (Enhanced Fork)
 
 > A fork of [HeliBoard](https://github.com/Helium314/HeliBoard) — a privacy-conscious, 
 > customizable, open-source Android keyboard — with additional power-user features.
@@ -9,19 +9,22 @@
 
 This fork extends the original HeliBoard with the following features:
 
-### 🧮 Built-in Calculator Mode
+### 🧮 Built-in Calculator Mode ![Screenshot_20260325_221804_Samsung Notes](https://github.com/user-attachments/assets/bd202e57-cca4-4a6d-ac57-40be1cac0842)
+
 - A dedicated **Calc button** switches the keyboard into Calculator Mode on the fly
 - Full calculation layout appears inline — no need to open a separate app
 - Press **`=`**  — the result is **automatically pasted at the cursor position**
 - After pasting, the keyboard **seamlessly returns to ABC mode** — no interruption, no app switching
 
-### 📋 Enhanced Clipboard Manager
+### 📋 Enhanced Clipboard Manager![Screenshot_20260325_221833_Samsung Notes](https://github.com/user-attachments/assets/8befe084-a531-4c62-9e88-7243f2da3d93)
+
 - Clipboard entries can be **triggered** directly from the keyboard
 - Each clip can be **tagged** for quick identification
 - Full **Backup & Restore** support for your clipboard history
 - Never lose an important copied item again
 
-### 📋 Confirmation dialog for clear clipboard action
+### 📋 Confirmation dialog for clear clipboard action ![Screenshot_20260325_221943_Samsung Notes](https://github.com/user-attachments/assets/2343fcfd-8a57-42cd-b6c3-8221f386c523)
+
 - clear clip board action now displays confirmation dialog.
 - select "Delete pinned clips" checkbox to delete pinned clip as well
 
