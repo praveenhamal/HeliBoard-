@@ -90,9 +90,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
         val res = context.resources
         val width = ResourceUtils.getKeyboardWidth(context, sv) + paddingLeft + paddingRight
         val height = ResourceUtils.getSecondaryKeyboardHeight(res, sv) + paddingTop + paddingBottom
-        setMeasuredDimension(width, height)
         super.onMeasure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY))
+        setMeasuredDimension(width, height)
     }
 
     @SuppressLint("ClickableViewAccessibility")

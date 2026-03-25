@@ -790,13 +790,9 @@ public final class InputLogic {
                 mConnection.copyText(false);
                 break;
             case KeyCode.CLIPBOARD_CLEAR_HISTORY:
-                if (mLatinIME.mKeyboardSwitcher.isShowingClipboardHistory()) {
-                    // This is handled by ClipboardHistoryView.onClick normally,
-                    // but if for some reason it's called via InputLogic while showing history:
-                    mLatinIME.getClipboardHistoryManager().setPendingShowClearConfirmation(true);
-                } else {
-                    mLatinIME.getClipboardHistoryManager().setPendingShowClearConfirmation(true);
-                    mLatinIME.mKeyboardSwitcher.onToggleKeyboard(helium314.keyboard.keyboard.KeyboardSwitcher.KeyboardSwitchState.CLIPBOARD);
+                mLatinIME.getClipboardHistoryManager().setPendingShowClearConfirmation(true);
+                if (!mLatinIME.getKeyboardSwitcher().isShowingClipboardHistory()) {
+                    mLatinIME.getKeyboardSwitcher().onToggleKeyboard(helium314.keyboard.keyboard.KeyboardSwitcher.KeyboardSwitchState.CLIPBOARD);
                 }
                 break;
             case KeyCode.CLIPBOARD_CUT:
