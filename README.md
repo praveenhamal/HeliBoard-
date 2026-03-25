@@ -21,6 +21,11 @@ This fork extends the original HeliBoard with the following features:
 - Full **Backup & Restore** support for your clipboard history
 - Never lose an important copied item again
 
+### 📋 Confirmation dialog for clear clipboard action
+- clear clip board action now displays confirmation dialog.
+- select "Delete pinned clips" checkbox to delete pinned clip as well
+
+
 ---
 
 ## 🔧 All Original HeliBoard Features Included
