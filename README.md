@@ -1,4 +1,4 @@
-![Screenshot_20260325_221943_Samsung Notes](https://github.com/user-attachments/assets/8a207b44-9203-4c7a-ba3c-6fad54c85286)# HeliBoard+ (Enhanced Fork)
+# HeliBoard+ (Enhanced Fork)
 
 > A fork of [HeliBoard](https://github.com/Helium314/HeliBoard) — a privacy-conscious, 
 > customizable, open-source Android keyboard — with additional power-user features.
@@ -9,21 +9,21 @@
 
 This fork extends the original HeliBoard with the following features:
 
-### 🧮 Built-in Calculator Mode ![Screenshot_20260325_221804_Samsung Notes](https://github.com/user-attachments/assets/bd202e57-cca4-4a6d-ac57-40be1cac0842)
+### 🧮 Built-in Calculator Mode 
 
 - A dedicated **Calc button** switches the keyboard into Calculator Mode on the fly
 - Full calculation layout appears inline — no need to open a separate app
 - Press **`=`**  — the result is **automatically pasted at the cursor position**
 - After pasting, the keyboard **seamlessly returns to ABC mode** — no interruption, no app switching
 
-### 📋 Enhanced Clipboard Manager![Screenshot_20260325_221833_Samsung Notes](https://github.com/user-attachments/assets/8befe084-a531-4c62-9e88-7243f2da3d93)
+### 📋 Enhanced Clipboard Manager
 
 - Clipboard entries can be **triggered** directly from the keyboard
 - Each clip can be **tagged** for quick identification
 - Full **Backup & Restore** support for your clipboard history
 - Never lose an important copied item again
 
-### 📋 Confirmation dialog for clear clipboard action ![Screenshot_20260325_221943_Samsung Notes](https://github.com/user-attachments/assets/2343fcfd-8a57-42cd-b6c3-8221f386c523)
+### 📋 Confirmation dialog for clear clipboard action
 
 - clear clip board action now displays confirmation dialog.
 - select "Delete pinned clips" checkbox to delete pinned clip as well
@@ -68,9 +68,16 @@ All original copyright notices and attributions are preserved.
 **Praveen Hamal**  
 📧 praveenhamal@gmail.com  
 
+
 Contributions, feedback, and bug reports are welcome via [Issues](../../issues).
 
 ---
 
 *Based on [HeliBoard by Helium314](https://github.com/Helium314/HeliBoard), 
 which is itself based on OpenBoard and AOSP Keyboard.*
+
+
+![Screenshot_20260325_221929_Samsung Notes](https://github.com/user-attachments/assets/c1f0a2ff-953e-4f6c-bcf2-95dae7da9b4b)
+![Screenshot_20260325_221943_Samsung Notes](https://github.com/user-attachments/assets/67ecc2ad-2675-4eed-a708-5076c5b24be8)
+![Screenshot_20260325_221804_Samsung Notes](https://github.com/user-attachments/assets/6a85c68f-e9a2-42b0-a64e-27fe52ff4d75)
+![Screenshot_20260325_221833_Samsung Notes](https://github.com/user-attachments/assets/71ea571c-7c43-4d17-9cf2-a7057e035882)
