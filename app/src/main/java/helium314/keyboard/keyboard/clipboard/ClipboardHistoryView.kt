@@ -256,9 +256,15 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     override fun onClipMoved(oldPosition: Int, newPosition: Int) {
-        clipboardAdapter.notifyItemMoved(oldPosition, newPosition)
+        if (oldPosition != newPosition) {
+            clipboardAdapter.notifyItemMoved(oldPosition, newPosition)
+        }
         clipboardAdapter.notifyItemChanged(newPosition)
         if (newPosition < oldPosition) clipboardRecyclerView.smoothScrollToPosition(newPosition)
+    }
+
+    override fun onClipChanged(position: Int) {
+        clipboardAdapter.notifyItemChanged(position)
     }
 
     // ── Prefs listener ────────────────────────────────────────────────────────

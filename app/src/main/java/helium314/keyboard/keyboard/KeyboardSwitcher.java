@@ -540,7 +540,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mEditingHistoryManager != null && mEditingClipId != -1L && mClipEditText != null) {
             String newText = mClipEditText.getText().toString();
             String newTrigger = mClipEditTrigger != null ? mClipEditTrigger.getText().toString().trim() : "";
-            if (!newText.isEmpty()) mEditingHistoryManager.updateClip(mEditingClipId, newText, newTrigger);
+            if (!newText.isEmpty()) {
+                mEditingHistoryManager.updateClip(mEditingClipId, newText, newTrigger);
+            }
         }
         closeClipEdit();
         setClipboardKeyboard();

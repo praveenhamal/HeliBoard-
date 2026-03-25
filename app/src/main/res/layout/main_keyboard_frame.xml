@@ -21,6 +21,8 @@
     <include
         android:id="@+id/keyboard_clip_edit_panel"
         layout="@layout/clipboard_edit_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:visibility="gone" />
 
     <!-- Calculator expression/result bar — shown above the numpad when calc mode is active.

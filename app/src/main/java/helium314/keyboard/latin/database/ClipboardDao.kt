@@ -27,6 +27,7 @@ class ClipboardDao private constructor(private val db: Database) {
         fun onClipInserted(position: Int)
         fun onClipsRemoved(position: Int, count: Int)
         fun onClipMoved(oldPosition: Int, newPosition: Int)
+        fun onClipChanged(position: Int)
     }
 
     var listener: Listener? = null
@@ -92,7 +93,7 @@ class ClipboardDao private constructor(private val db: Database) {
 
     /** Update the text and trigger key of an existing entry. */
     fun updateClip(id: Long, newText: String, newTriggerKey: String) {
-        val entry = cache.first { it.id == id }
+        val entry = cache.firstOrNull { it.id == id } ?: return
         entry.text = newText
         entry.triggerKey = newTriggerKey
         val cv = ContentValues(2)
@@ -100,7 +101,7 @@ class ClipboardDao private constructor(private val db: Database) {
         cv.put(COLUMN_TRIGGER_KEY, newTriggerKey)
         db.writableDatabase.update(TABLE, cv, "$COLUMN_ID = ${entry.id}", null)
         // notify adapter about change
-        listener?.onClipMoved(cache.indexOf(entry), cache.indexOf(entry))
+        listener?.onClipChanged(cache.indexOf(entry))
     }
 
     /** Return the first clip whose triggerKey matches the given word (case-insensitive), or null. */

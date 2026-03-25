@@ -334,7 +334,7 @@ class DynamicColors(context: Context, override val themeStyle: String, override 
 
     override fun setBackground(view: View, color: ColorType) {
         if (view.background == null)
-            view.setBackgroundColor(Color.WHITE) // set white to make the color filters work
+            view.setBackgroundColor(Color.WHITE) // set white to make the color filters work (MULTIPLY)
         when (color) {
             KEY_PREVIEW_BACKGROUND -> view.background.colorFilter = adjustedBackgroundFilter
             FUNCTIONAL_KEY_BACKGROUND, KEY_BACKGROUND, MORE_SUGGESTIONS_WORD_BACKGROUND, SPACE_BAR_BACKGROUND, STRIP_BACKGROUND -> setColor(view.background, color)
@@ -523,7 +523,7 @@ class DefaultColors (
 
     override fun setBackground(view: View, color: ColorType) {
         if (view.background == null)
-            view.setBackgroundColor(Color.WHITE) // set white to make the color filters work
+            view.setBackgroundColor(Color.WHITE) // set white to make the color filters work (MULTIPLY)
         when (color) {
             KEY_PREVIEW_BACKGROUND, POPUP_KEYS_BACKGROUND -> view.background.colorFilter = adjustedBackgroundFilter
             FUNCTIONAL_KEY_BACKGROUND, KEY_BACKGROUND, MORE_SUGGESTIONS_WORD_BACKGROUND, SPACE_BAR_BACKGROUND, STRIP_BACKGROUND, CLIPBOARD_SUGGESTION_BACKGROUND -> setColor(view.background, color)
@@ -577,7 +577,7 @@ class AllColors(private val colorMap: EnumMap<ColorType, Int>, override val them
 
     override fun setBackground(view: View, color: ColorType) {
         if (view.background == null)
-            view.setBackgroundColor(Color.WHITE) // set white to make the color filters work
+            view.setBackgroundColor(Color.WHITE) // set white to make the color filters work (MULTIPLY)
         when (color) {
             ONE_HANDED_MODE_BUTTON -> setColor(view.background, MAIN_BACKGROUND) // button has no separate background color
             MAIN_BACKGROUND -> {

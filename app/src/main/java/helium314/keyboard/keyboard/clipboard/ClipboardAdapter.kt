@@ -21,6 +21,9 @@ import helium314.keyboard.latin.ClipboardHistoryManager
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.latin.utils.Log
+
+private const val TAG = "ClipboardAdapter"
 
 class ClipboardAdapter(
     val clipboardLayoutParams: ClipboardLayoutParams,
@@ -70,7 +73,7 @@ class ClipboardAdapter(
                 setBackgroundResource(itemBackgroundId)
                 isHapticFeedbackEnabled = false
             }
-            Settings.getValues().mColors.setBackground(view, ColorType.KEY_BACKGROUND)
+            Settings.getValues()?.mColors?.setBackground(view, ColorType.KEY_BACKGROUND)
             pinnedIconView = view.findViewById<ImageView>(R.id.clipboard_entry_pinned_icon).apply {
                 visibility = View.GONE
                 setImageResource(pinnedIconResId)
@@ -81,7 +84,7 @@ class ClipboardAdapter(
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, itemTextSize)
             }
             clipboardLayoutParams.setItemProperties(view)
-            Settings.getValues().mColors.setColor(pinnedIconView, ColorType.CLIPBOARD_PIN)
+            Settings.getValues()?.mColors?.setColor(pinnedIconView, ColorType.CLIPBOARD_PIN)
 
             triggerLabelView = view.findViewById(R.id.clipboard_entry_trigger_label)
             triggerLabelView.setTextColor(itemTextColor)
@@ -116,6 +119,7 @@ class ClipboardAdapter(
 
         override fun onLongClick(view: View): Boolean {
             val id = view.tag as? Long ?: return false
+            view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
             showContextMenu(view, id)
             return true
         }
@@ -132,9 +136,10 @@ class ClipboardAdapter(
                 setPadding(4.dp(ctx), 4.dp(ctx), 4.dp(ctx), 4.dp(ctx))
             }
 
+            val settingsValues = Settings.getValues() ?: return
             val popup = PopupWindow(ctx).apply {
                 contentView = layout
-                isFocusable = true
+                isFocusable = false
                 isOutsideTouchable = true
                 elevation = 8f
                 // IME windows require TYPE_APPLICATION_ATTACHED_DIALOG so the popup
@@ -150,7 +155,7 @@ class ClipboardAdapter(
                 text = label
                 textSize = 14f
                 setPadding(16.dp(ctx), 12.dp(ctx), 16.dp(ctx), 12.dp(ctx))
-                setTextColor(Settings.getValues().mColors.get(ColorType.KEY_TEXT))
+                setTextColor(settingsValues.mColors.get(ColorType.KEY_TEXT))
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -193,35 +198,43 @@ class ClipboardAdapter(
             })
 
             // Theme the popup background
-            Settings.getValues().mColors.setBackground(layout, ColorType.STRIP_BACKGROUND)
+            settingsValues.mColors.setBackground(layout, ColorType.STRIP_BACKGROUND)
 
-            anchor.post {
-                val layoutLocation = IntArray(2)
-                anchor.getLocationInWindow(layoutLocation)
-                
-                var p = anchor.parent
-                while (p != null && p !is ClipboardHistoryView) p = p.parent
-                val clipboardView = p as? View
-                
-                val clipboardLocation = IntArray(2)
-                clipboardView?.getLocationInWindow(clipboardLocation)
-                
-                val relativeY = layoutLocation[1] - clipboardLocation[1]
-                val limit = clipboardView?.height ?: anchor.rootView.height
-                
-                layout.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
-                val popupHeight = layout.measuredHeight
-                val popupWidth = layout.measuredWidth
-                val anchorHeight = anchor.height
-                
-                popup.width = popupWidth
-                popup.height = popupHeight
+            if (!anchor.isAttachedToWindow) {
+                Log.w(TAG, "Anchor view is not attached to window, cannot show context menu")
+                return
+            }
 
+            val layoutLocation = IntArray(2)
+            anchor.getLocationInWindow(layoutLocation)
+            
+            var p = anchor.parent
+            while (p != null && p !is ClipboardHistoryView) p = p.parent
+            val clipboardView = p as? View
+            
+            val clipboardLocation = IntArray(2)
+            clipboardView?.getLocationInWindow(clipboardLocation)
+            
+            val relativeY = layoutLocation[1] - clipboardLocation[1]
+            val rootHeight = anchor.rootView?.height ?: 0
+            val limit = clipboardView?.height ?: if (rootHeight > 0) rootHeight else anchor.context.resources.displayMetrics.heightPixels
+            
+            layout.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+            val popupHeight = layout.measuredHeight
+            val popupWidth = layout.measuredWidth
+            val anchorHeight = anchor.height
+            
+            popup.width = popupWidth
+            popup.height = popupHeight
+
+            try {
                 if (relativeY + anchorHeight + popupHeight > limit && relativeY > popupHeight) {
                     popup.showAsDropDown(anchor, 0, -anchorHeight - popupHeight, Gravity.START)
                 } else {
                     popup.showAsDropDown(anchor, 0, 0, Gravity.START)
                 }
+            } catch (t: Throwable) {
+                Log.e(TAG, "Failed to show clipboard context menu", t)
             }
         }
 
