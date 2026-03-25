@@ -26,6 +26,7 @@ class ClipboardHistoryManager(
         private val latinIME: LatinIME
 ) : ClipboardManager.OnPrimaryClipChangedListener {
 
+    var pendingShowClearConfirmation = false
     private lateinit var clipboardManager: ClipboardManager
     private var clipboardSuggestionView: View? = null
     private var clipboardDao: ClipboardDao? = null
@@ -125,8 +126,13 @@ class ClipboardHistoryManager(
         return binding.root
     }
 
-    fun clearHistory() {
-        clipboardDao?.clearNonPinned()
+    @JvmOverloads
+    fun clearHistory(includePinned: Boolean = false) {
+        if (includePinned) {
+            clipboardDao?.clear()
+        } else {
+            clipboardDao?.clearNonPinned()
+        }
         ClipboardManagerCompat.clearPrimaryClip(clipboardManager)
         removeClipboardSuggestion()
     }

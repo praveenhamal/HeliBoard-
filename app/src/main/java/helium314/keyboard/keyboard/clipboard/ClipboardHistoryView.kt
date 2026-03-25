@@ -7,11 +7,17 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.AttributeSet
 import android.util.TypedValue
+import android.view.Gravity
 import android.view.View
+import android.view.View.MeasureSpec
 import android.view.inputmethod.EditorInfo
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.KeyboardActionListener
@@ -44,7 +50,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         context: Context,
         attrs: AttributeSet?,
         defStyle: Int = R.attr.clipboardHistoryViewStyle
-) : LinearLayout(context, attrs, defStyle), View.OnClickListener,
+) : FrameLayout(context, attrs, defStyle), View.OnClickListener,
     ClipboardDao.Listener, OnKeyEventListener,
     View.OnLongClickListener, SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -54,6 +60,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
     private lateinit var clipboardRecyclerView: ClipboardHistoryRecyclerView
     private lateinit var placeholderView: TextView
+    private lateinit var contentContainer: FrameLayout
+    private var confirmationView: View? = null
+    private var isShowingClearConfirmation = false
     private val toolbarKeys = mutableListOf<ImageButton>()
     private lateinit var clipboardAdapter: ClipboardAdapter
 
@@ -77,11 +86,13 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        val sv = Settings.getValues()
         val res = context.resources
-        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + paddingLeft + paddingRight
-        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + paddingTop + paddingBottom
+        val width = ResourceUtils.getKeyboardWidth(context, sv) + paddingLeft + paddingRight
+        val height = ResourceUtils.getSecondaryKeyboardHeight(res, sv) + paddingTop + paddingBottom
         setMeasuredDimension(width, height)
+        super.onMeasure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY))
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -106,6 +117,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
             clipboardLayoutParams.setListProperties(this)
             placeholderView = this@ClipboardHistoryView.placeholderView
         }
+        contentContainer = findViewById(R.id.clipboard_content_container)
         val clipboardStrip = KeyboardSwitcher.getInstance().clipboardStrip
         toolbarKeys.forEach {
             clipboardStrip.addView(it)
@@ -128,7 +140,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     private fun setupToolbarKeys() {
-        val toolbarKeyLayoutParams = LayoutParams(resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_edge_key_width), LayoutParams.MATCH_PARENT)
+        val toolbarKeyLayoutParams = LinearLayout.LayoutParams(resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_edge_key_width), LinearLayout.LayoutParams.MATCH_PARENT)
         toolbarKeys.forEach { it.layoutParams = toolbarKeyLayoutParams }
     }
 
@@ -165,6 +177,12 @@ class ClipboardHistoryView @JvmOverloads constructor(
         settings.getCustomTypeface()?.let { params.mTypeface = it }
         setupClipKey(params)
         setupBottomRowKeyboard(editorInfo, keyboardActionListener)
+        
+        if (historyManager.pendingShowClearConfirmation) {
+            historyManager.pendingShowClearConfirmation = false
+            post { showClearConfirmation() }
+        }
+        updatePlaceholderVisibility()
 
         placeholderView.apply {
             typeface = params.mTypeface
@@ -185,13 +203,16 @@ class ClipboardHistoryView @JvmOverloads constructor(
                 keyboardWidth, keyboardWidth, 0f)
                     * settings.current.mSidePaddingScale).toInt()
             keyboardAttr.recycle()
-            setPadding(leftPadding, paddingTop, rightPadding, paddingBottom)
+            
+            // clear root padding and move to inner layout
+            findViewById<View>(R.id.clipboard_history_main_layout)?.setPadding(leftPadding, paddingTop, rightPadding, paddingBottom)
+            setPadding(0, 0, 0, 0)
         }
 
-        toolbarKeys.forEach { it.isEnabled = false; it.isEnabled = true }
     }
 
     fun stopClipboardHistory() {
+        hideClearConfirmation()
         if (!this::clipboardAdapter.isInitialized) return
         clipboardRecyclerView.adapter = null
         clipboardHistoryManager.setHistoryChangeListener(null)
@@ -201,10 +222,15 @@ class ClipboardHistoryView @JvmOverloads constructor(
     // ── Toolbar click handling ────────────────────────────────────────────────
 
     override fun onClick(view: View) {
+        if (isShowingClearConfirmation) return
         val tag = view.tag
         if (tag is ToolbarKey) {
             AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, this, HapticEvent.KEY_PRESS)
             val code = getCodeForToolbarKey(tag)
+            if (code == KeyCode.CLIPBOARD_CLEAR_HISTORY) {
+                showClearConfirmation()
+                return
+            }
             if (code != KeyCode.UNSPECIFIED) {
                 keyboardActionListener.onCodeInput(code, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
                 return
@@ -213,6 +239,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     override fun onLongClick(view: View): Boolean {
+        if (isShowingClearConfirmation) return true
         val tag = view.tag
         if (tag is ToolbarKey) {
             AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, this, HapticEvent.KEY_LONG_PRESS)
@@ -228,6 +255,100 @@ class ClipboardHistoryView @JvmOverloads constructor(
             return true
         }
         return false
+    }
+
+    private fun showClearConfirmation() {
+        if (isShowingClearConfirmation) return
+        isShowingClearConfirmation = true
+        if (confirmationView == null) {
+            val colors = Settings.getValues().mColors
+            val fg = colors.get(ColorType.KEY_TEXT)
+            
+            // outer container to block touches and fill area
+            confirmationView = FrameLayout(context).apply {
+                isClickable = true
+                isFocusable = true
+                setBackgroundColor(0x99000000.toInt()) // Dim background
+                layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+                
+                // inner themed prompt
+                addView(LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER
+                    val padding = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16f, resources.displayMetrics).toInt()
+                    setPadding(padding, padding, padding, padding)
+                    colors.setBackground(this, ColorType.CLIPBOARD_SUGGESTION_BACKGROUND)
+                    layoutParams = FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+                        gravity = Gravity.CENTER
+                    }
+                    
+                    addView(TextView(context).apply {
+                        text = "Clear clipboard history?"
+                        setTextColor(fg)
+                        gravity = Gravity.CENTER
+                        setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                        setPadding(0, 16, 0, 16)
+                    })
+                    
+                    val checkBox = CheckBox(context).apply {
+                        text = "Delete pinned clips"
+                        setTextColor(fg)
+                        buttonTintList = android.content.res.ColorStateList.valueOf(fg)
+                        setPadding(16, 8, 16, 8)
+                    }
+                    addView(checkBox)
+                    
+                    addView(LinearLayout(context).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER
+                        setPadding(0, 16, 0, 16)
+                        
+                        addView(Button(context).apply {
+                            text = "Cancel"
+                            setTextColor(fg)
+                            colors.setBackground(this, ColorType.KEY_BACKGROUND)
+                            setOnClickListener { hideClearConfirmation() }
+                        })
+                        
+                        addView(View(context).apply { layoutParams = LinearLayout.LayoutParams(32, 1) })
+                        
+                        addView(Button(context).apply {
+                            text = "Clear"
+                            setTextColor(fg)
+                            colors.setBackground(this, ColorType.KEY_BACKGROUND)
+                            setOnClickListener {
+                                clipboardHistoryManager.clearHistory(checkBox.isChecked)
+                                hideClearConfirmation()
+                            }
+                        })
+                    })
+                })
+            }
+        }
+        
+        if (confirmationView?.parent == null) {
+            addView(confirmationView)
+        }
+        // Do NOT set visibility to INVISIBLE, just let the dimmed FrameLayout cover it
+        findViewById<View>(R.id.bottom_row_keyboard)?.visibility = View.INVISIBLE
+        toolbarKeys.forEach { it.isEnabled = false }
+        KeyboardSwitcher.getInstance().clipboardStrip.isEnabled = false
+    }
+    
+    private fun hideClearConfirmation() {
+        if (!isShowingClearConfirmation) return
+        removeView(confirmationView)
+        findViewById<View>(R.id.bottom_row_keyboard)?.visibility = View.VISIBLE
+        toolbarKeys.forEach { it.isEnabled = true }
+        KeyboardSwitcher.getInstance().clipboardStrip.isEnabled = true
+        isShowingClearConfirmation = false
+    }
+
+    private fun updatePlaceholderVisibility() {
+        if (!::clipboardHistoryManager.isInitialized) return
+        val empty = clipboardHistoryManager.getHistorySize() == 0
+        placeholderView.isVisible = empty
+        clipboardRecyclerView.isVisible = !empty
     }
 
     // ── Clip tap handling ─────────────────────────────────────────────────────
@@ -252,7 +373,10 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     override fun onClipsRemoved(position: Int, count: Int) {
-        clipboardAdapter.notifyItemRangeRemoved(position, count)
+        clipboardRecyclerView.post {
+            clipboardAdapter.notifyDataSetChanged()
+            updatePlaceholderVisibility()
+        }
     }
 
     override fun onClipMoved(oldPosition: Int, newPosition: Int) {

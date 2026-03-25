@@ -137,7 +137,7 @@ public class LatinIME extends InputMethodService implements
     private SuggestionStripView mSuggestionStripView;
 
     private RichInputMethodManager mRichImm;
-    final KeyboardSwitcher mKeyboardSwitcher;
+    public final KeyboardSwitcher mKeyboardSwitcher;
     private final SubtypeState mSubtypeState = new SubtypeState((InputMethodSubtype subtype) -> { switchToSubtype(subtype); return Unit.INSTANCE; });
     private final StatsUtilsManager mStatsUtilsManager;
     // Working variable for {@link #startShowingInputView()} and
