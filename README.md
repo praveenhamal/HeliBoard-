@@ -23,11 +23,10 @@ This fork extends the original HeliBoard with the following features:
 - Full **Backup & Restore** support for your clipboard history
 - Never lose an important copied item again
 
-### 📋 Confirmation dialog for clear clipboard action
+### 📋 Confirmation Dialog for Clear Clipboard Action
 
-- clear clip board action now displays confirmation dialog.
-- select "Delete pinned clips" checkbox to delete pinned clip as well
-
+- Clear clipboard action now displays a confirmation dialog
+- Select "Delete pinned clips" checkbox to delete pinned clips as well
 
 ---
 
@@ -73,9 +72,26 @@ Contributions, feedback, and bug reports are welcome via [Issues](../../issues).
 
 ---
 
+## ❤️ Support This Project
+
+HeliBoard+ is and will always be **completely free and open source**.  
+If you find it useful and would like to support continued development,  
+any contribution — however small — is deeply appreciated. 🙏
+
+**💙 PayPal:**  
+[paypal.com/qrcodes/p2pqrc/JU65PQ7GEUBLJ](https://www.paypal.com/qrcodes/p2pqrc/JU65PQ7GEUBLJ)
+
+**💰 Crypto:**  
+- USDT (TRC20): `TGUd1uCkWQQ5RWjRP1KDRFjhoo16LjoRzM`  
+- BTC: `bc1qg4rq4ctkmeefnt6nrzsnky2njywa7s84ftu9c8`  
+- ETH: `0xd1808202e448ce41ad17bad6281d0f0dc7310a4e`  
+
+*Thank you for using HeliBoard+ and supporting open source development!* 🌟
+
+---
+
 *Based on [HeliBoard by Helium314](https://github.com/Helium314/HeliBoard), 
 which is itself based on OpenBoard and AOSP Keyboard.*
-
 
 ![Screenshot_20260325_221929_Samsung Notes](https://github.com/user-attachments/assets/c1f0a2ff-953e-4f6c-bcf2-95dae7da9b4b)
 ![Screenshot_20260325_221943_Samsung Notes](https://github.com/user-attachments/assets/67ecc2ad-2675-4eed-a708-5076c5b24be8)
