@@ -3,6 +3,8 @@ package helium314.keyboard.keyboard.calculator
 
 import android.content.Context
 import android.util.AttributeSet
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.view.MotionEvent
 import android.view.View
 import android.widget.EditText
@@ -11,6 +13,9 @@ import android.widget.TextView
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.latin.utils.brightenOrDarken
+import helium314.keyboard.latin.utils.darken
+import helium314.keyboard.latin.utils.isBrightColor
 
 /**
  * Thin bar shown above the numpad when the calculator toolbar key is tapped.
@@ -27,6 +32,7 @@ class CalcInputView @JvmOverloads constructor(
 
     private var expressionView: EditText? = null
     private var resultView: TextView? = null
+    private var displayContainer: View? = null
 
     val expression = StringBuilder()
 
@@ -35,8 +41,9 @@ class CalcInputView @JvmOverloads constructor(
 
     override fun onFinishInflate() {
         super.onFinishInflate()
-        expressionView = findViewById(R.id.calc_expression)
-        resultView     = findViewById(R.id.calc_result)
+        expressionView   = findViewById(R.id.calc_expression)
+        resultView       = findViewById(R.id.calc_result)
+        displayContainer = findViewById(R.id.calc_display_container)
 
         // Cursor movement via swipe
         val threshold = 20f // pixels per character
@@ -74,11 +81,27 @@ class CalcInputView @JvmOverloads constructor(
     private fun applyColors() {
         try {
             val colors = Settings.getValues()?.mColors ?: return
-            colors.setBackground(this, ColorType.STRIP_BACKGROUND)
+            val stripColor = colors.get(ColorType.STRIP_BACKGROUND)
+            setBackgroundColor(stripColor)
+
             val textColor = colors.get(ColorType.KEY_TEXT)
+            val displayBgBase = colors.get(ColorType.STRIP_BACKGROUND)
+            val displayBg = if (isBrightColor(displayBgBase)) darken(displayBgBase) else brightenOrDarken(displayBgBase, true)
+
+            val displayDrawable = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                setColor(displayBg)
+                cornerRadius = 4f * resources.displayMetrics.density
+                setStroke((1f * resources.displayMetrics.density).toInt(), textColor and 0x33FFFFFF or 0x22000000)
+            }
+            displayContainer?.background = displayDrawable
+
             expressionView?.setTextColor(textColor)
             expressionView?.setHintTextColor((textColor and 0x00FFFFFF) or 0x88000000.toInt())
+            expressionView?.typeface = Typeface.MONOSPACE
+            
             resultView?.setTextColor(textColor)
+            resultView?.typeface = Typeface.MONOSPACE
         } catch (_: Exception) {
             // ignore color errors — not worth crashing for
         }
