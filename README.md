@@ -1,3 +1,4 @@
+
 # HeliBoard+ (Enhanced Fork)
 
 > A fork of [HeliBoard](https://github.com/Helium314/HeliBoard) — a privacy-conscious, 
@@ -27,6 +28,7 @@ This fork extends the original HeliBoard with the following features:
 
 - Clear clipboard action now displays a confirmation dialog
 - Select "Delete pinned clips" checkbox to delete pinned clips as well
+- Never worry for accidental deletion of clips
 
 ---
 
@@ -44,14 +46,10 @@ This fork extends the original HeliBoard with the following features:
 
 ## 📦 Installation
 
-1. Download the APK from the [Releases](../../releases) page
+1. Download the latest APK from the [Releases](../../releases) page
 2. Enable "Install from unknown sources" on your Android device
 3. Install and set as default keyboard
 
-### Build from Source
-1. Clone this repository
-2. Open in Android Studio
-3. Build and install via `Run` or generate a signed APK
 
 ---
 
