@@ -41,6 +41,7 @@ import helium314.keyboard.latin.utils.upgradeToolbarPrefs
 import helium314.keyboard.latin.utils.writeCustomKeyCodes
 import helium314.keyboard.settings.screens.colorPrefsAndResIds
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.EnumMap
@@ -596,6 +597,22 @@ object AppUpgrade {
             prefs.edit {
                 putBoolean(Settings.PREF_SUGGEST_PUNCTUATION,
                     !prefs.getBoolean(Settings.PREF_BIGRAM_PREDICTIONS, Defaults.PREF_BIGRAM_PREDICTIONS))
+            }
+        }
+        if (oldVersion <= 3900) {
+            // Remove the old hardcoded "calculator" → shift icon override that was previously
+            // used as a workaround before dedicated calculator drawables existed.
+            val customIconPref = Settings.PREF_CUSTOM_ICON_NAMES
+            if (prefs.contains(customIconPref)) {
+                runCatching {
+                    val map = Json.decodeFromString<Map<String, String>>(
+                        prefs.getString(customIconPref, Defaults.PREF_CUSTOM_ICON_NAMES)!!
+                    ).toMutableMap()
+                    if (map["calculator"] == "sym_keyboard_shift_holo") {
+                        map.remove("calculator")
+                        prefs.edit { putString(customIconPref, Json.encodeToString(map)) }
+                    }
+                }
             }
         }
         upgradeToolbarPrefs(prefs)

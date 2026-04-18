@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!--
+        Calculator body ring:
+        Outer path goes CLOCKWISE  → creates filled shape
+        Inner path goes COUNTER-CLOCKWISE → punches hole (nonZero fill rule)
+        Result = visible border ring around a transparent interior
+    -->
+    <path
+        android:fillColor="#FFF"
+        android:pathData="M5,3H19Q21,3 21,5V19Q21,21 19,21H5Q3,21 3,19V5Q3,3 5,3Z M5,19H19V5H5Z"/>
+    <!-- Display bar across the top -->
+    <path
+        android:fillColor="#FFF"
+        android:pathData="M6.5,7h11v2.5H6.5z"/>
+    <!-- Button grid: 3 columns x 2 rows -->
+    <path
+        android:fillColor="#FFF"
+        android:pathData="M6.5,11h3v2.5H6.5z M10.5,11h3v2.5h-3z M14.5,11h3v2.5h-3z
+                          M6.5,14.5h3v2.5H6.5z M10.5,14.5h3v2.5h-3z M14.5,14.5h3v2.5h-3z"/>
+</vector>

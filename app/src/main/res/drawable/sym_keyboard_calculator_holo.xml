@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Same geometry as LXX, just physically larger (32dp vs 24dp) -->
+    <path
+        android:fillColor="#FFF"
+        android:pathData="M5,3H19Q21,3 21,5V19Q21,21 19,21H5Q3,21 3,19V5Q3,3 5,3Z M5,19H19V5H5Z"/>
+    <path
+        android:fillColor="#FFF"
+        android:pathData="M6.5,7h11v2.5H6.5z"/>
+    <path
+        android:fillColor="#FFF"
+        android:pathData="M6.5,11h3v2.5H6.5z M10.5,11h3v2.5h-3z M14.5,11h3v2.5h-3z
+                          M6.5,14.5h3v2.5H6.5z M10.5,14.5h3v2.5h-3z M14.5,14.5h3v2.5h-3z"/>
+</vector>

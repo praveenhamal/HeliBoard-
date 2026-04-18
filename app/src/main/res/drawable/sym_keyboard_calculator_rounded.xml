@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <!--
+        Rounded/Material Symbols style: thick strokes, generous corner radius.
+        Viewport is 960x960 (40x scale of a 24x24 icon).
+        Body ring: outer CW (120..840 range) + inner CCW (200..760 range)
+        Border thickness = 80 units = 2dp equivalent at 40x scale
+    -->
+    <path
+        android:fillColor="#FFF"
+        android:pathData="M200,120H760Q840,120 840,200V800Q840,880 760,880H200Q120,880 120,800V200Q120,120 200,120Z M200,800H760V200H200Z"/>
+    <!-- Display bar: wide rectangle near the top of the inner area -->
+    <path
+        android:fillColor="#FFF"
+        android:pathData="M260,240H700V380H260Z"/>
+    <!--
+        Button grid: 3 columns x 2 rows
+        Inner X area: 200-760 → usable 260-700 (width 440)
+        Columns: 260-400 | 420-560 | 580-720  (each 140w, gap 20)
+        Wait: 700-260=440. 3 cols: (440-2*20)/3 ≈ 133 each → col1:260-393 | gap | col2:413-546 | gap | col3:566-700
+        Simpler round numbers: 3 cols of 120, gaps 40 each, total=3*120+2*40=440 ✓
+        Col1: 260-380 | Col2: 420-540 | Col3: 580-700
+        Inner Y area: 200-800 → below display: 420-760 (height 340)
+        2 rows of 140h, gap 60: total=2*140+60=340 ✓
+        Row1: 420-560 | Row2: 620-760
+    -->
+    <path
+        android:fillColor="#FFF"
+        android:pathData="M260,420H380V540H260Z M420,420H540V540H420Z M580,420H700V540H580Z
+                          M260,600H380V720H260Z M420,600H540V720H420Z M580,600H700V720H580Z"/>
+</vector>

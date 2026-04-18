@@ -27,11 +27,7 @@ fun createToolbarKey(context: Context, key: ToolbarKey): ImageButton {
     button.tag = key
     button.contentDescription = key.name.lowercase().getStringResourceOrName("", context)
     setToolbarButtonActivatedState(button)
-    if (key == CALCULATOR) {
-        button.setImageDrawable(TextDrawable("calc"))
-    } else {
-        button.setImageDrawable(KeyboardIconsSet.instance.getNewDrawable(key.name, context))
-    }
+    button.setImageDrawable(KeyboardIconsSet.instance.getNewDrawable(key.name, context))
     return button
 }
 
