@@ -1193,7 +1193,8 @@ public class LatinIME extends InputMethodService implements
         }
         final int stripHeight = mKeyboardSwitcher.isShowingStripContainer() ? mKeyboardSwitcher.getStripContainer().getHeight() : 0;
         final int calcHeight = mKeyboardSwitcher.getCalcInputViewHeight();
-        int visibleTopY = inputHeight - visibleKeyboardView.getHeight() - stripHeight - calcHeight;
+        final int clipHeight = mKeyboardSwitcher.getClipEditPanelHeight();
+        int visibleTopY = inputHeight - visibleKeyboardView.getHeight() - stripHeight - calcHeight - clipHeight;
 
         if (hasSuggestionStripView()) {
             mSuggestionStripView.setMoreSuggestionsHeight(visibleTopY);

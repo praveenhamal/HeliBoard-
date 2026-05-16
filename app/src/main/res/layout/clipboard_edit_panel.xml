@@ -18,10 +18,13 @@
         android:minHeight="48dp"
         android:background="@drawable/clipboard_edit_field_background"
         android:hint="@string/clipboard_edit_hint_text"
-        android:inputType="textMultiLine"
-        android:maxLines="3"
+        android:inputType="textMultiLine|textNoSuggestions"
+        android:maxLines="10"
         android:minLines="1"
         android:imeOptions="flagNoExtractUi"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:clickable="true"
         android:padding="8dp"
         android:layout_marginBottom="4dp"/>
 

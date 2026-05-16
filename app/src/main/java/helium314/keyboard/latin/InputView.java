@@ -30,6 +30,8 @@ public final class InputView extends FrameLayout {
     private MainKeyboardView mMainKeyboardView;
     private KeyboardTopPaddingForwarder mKeyboardTopPaddingForwarder;
     private MoreSuggestionsViewCanceler mMoreSuggestionsViewCanceler;
+    private View mKeyboardClipEditPanel;
+    private View mCalcInputView;
     private MotionEventForwarder<?, ?> mActiveForwarder;
 
     public InputView(final Context context, final AttributeSet attrs) {
@@ -46,6 +48,8 @@ public final class InputView extends FrameLayout {
                 mMainKeyboardView, suggestionStripView);
         mMoreSuggestionsViewCanceler = new MoreSuggestionsViewCanceler(
                 mMainKeyboardView, suggestionStripView);
+        mKeyboardClipEditPanel = findViewById(R.id.keyboard_clip_edit_panel);
+        mCalcInputView = findViewById(R.id.calc_input_view);
         ViewKt.doOnNextLayout(this, this::onNextLayout);
     }
 
@@ -66,6 +70,13 @@ public final class InputView extends FrameLayout {
 
     @Override
     public boolean onInterceptTouchEvent(final MotionEvent me) {
+        // Do not intercept if the clipboard edit panel is shown.
+        // This prevents the suggestion strip forwarder from stealing touches
+        // from the top part of the edit panel.
+        if (mKeyboardClipEditPanel != null && mKeyboardClipEditPanel.getVisibility() == VISIBLE) {
+            return false;
+        }
+
         final Rect rect = mInputViewRect;
         getGlobalVisibleRect(rect);
         final int index = me.getActionIndex();

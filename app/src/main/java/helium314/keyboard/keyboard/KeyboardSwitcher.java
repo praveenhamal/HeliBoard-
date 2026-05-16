@@ -424,6 +424,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         return isShowingCalculator() ? mCalcInputView.getHeight() : 0;
     }
 
+    public int getClipEditPanelHeight() {
+        return (mKeyboardClipEditPanel != null && mKeyboardClipEditPanel.getVisibility() == View.VISIBLE)
+                ? mKeyboardClipEditPanel.getHeight() : 0;
+    }
+
     /** Called when the user taps the calc bar or presses Enter/= while calculator is open. */
     public void commitCalcResult() {
         if (mCalcInputView == null) {
@@ -492,15 +497,39 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         } catch (Exception ignored) {}
         // Switch from clipboard to QWERTY FIRST (setMainKeyboardFrame inside would hide the panel)
         setAlphabetKeyboard();
-        // Show the panel AFTER setAlphabetKeyboard so setMainKeyboardFrame doesn't hide it
         mKeyboardClipEditPanel.setVisibility(View.VISIBLE);
+        mLatinIME.updateInputViewShown();
         // Route keyboard events into the edit fields instead of LatinIME
         mOriginalKeyboardListener = mLatinIME.mKeyboardActionListener;
         final android.widget.EditText[] focused = { mClipEditText };
-        if (mClipEditText != null)
+        if (mClipEditText != null) {
             mClipEditText.setOnFocusChangeListener((v, f) -> { if (f) focused[0] = mClipEditText; });
-        if (mClipEditTrigger != null)
+            mClipEditText.setFocusable(true);
+            mClipEditText.setFocusableInTouchMode(true);
+            mClipEditText.setClickable(true);
+            mClipEditText.setLongClickable(true);
+            mClipEditText.setOnTouchListener((v, event) -> {
+                android.widget.EditText et = (android.widget.EditText) v;
+                // Block parent from stealing the drag
+                v.getParent().requestDisallowInterceptTouchEvent(true);
+                
+                // Let EditText handle taps, focus, etc. naturally
+                boolean handled = et.onTouchEvent(event);
+                
+                // Manual move cursor during drag
+                if (event.getAction() == android.view.MotionEvent.ACTION_MOVE) {
+                    int offset = et.getOffsetForPosition(event.getX(), event.getY());
+                    if (offset >= 0 && offset <= et.length()) {
+                        et.setSelection(offset);
+                    }
+                    return true; // We handled the move
+                }
+                return handled;
+            });
+        }
+        if (mClipEditTrigger != null) {
             mClipEditTrigger.setOnFocusChangeListener((v, f) -> { if (f) focused[0] = mClipEditTrigger; });
+        }
         if (mKeyboardView != null) {
             mKeyboardView.setKeyboardActionListener(new KeyboardActionListener.Adapter() {
                 @Override
@@ -521,7 +550,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                         int sel = et.getSelectionStart();
                         if (sel > 0) ed.delete(sel - 1, sel);
                     } else if (code == 10 || code == helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode.ACTION_NEXT) {
-                        if (et == mClipEditTrigger) confirmClipEdit();
+                        if (et == mClipEditTrigger) {
+                            confirmClipEdit();
+                        } else {
+                            ed.insert(et.getSelectionStart(), "\n");
+                        }
                     } else if (code > 0) {
                         ed.insert(et.getSelectionStart(), String.valueOf((char) code));
                     }
@@ -531,9 +564,20 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                     android.widget.EditText et = focused[0];
                     if (et != null && t != null) et.getText().insert(et.getSelectionStart(), t);
                 }
+                @Override
+                public boolean onHorizontalSpaceSwipe(int steps) {
+                    android.widget.EditText et = focused[0];
+                    if (et == null) return false;
+                    int sel = et.getSelectionStart();
+                    int newSel = sel + steps;
+                    if (newSel < 0) newSel = 0;
+                    if (newSel > et.length()) newSel = et.length();
+                    et.setSelection(newSel);
+                    return true;
+                }
             });
         }
-        if (mClipEditText != null) mClipEditText.requestFocus();
+        if (mClipEditText != null) mClipEditText.post(() -> mClipEditText.requestFocus());
     }
 
     public void confirmClipEdit() {
@@ -549,7 +593,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void closeClipEdit() {
-        if (mKeyboardClipEditPanel != null) mKeyboardClipEditPanel.setVisibility(View.GONE);
+        if (mKeyboardClipEditPanel != null) {
+            mKeyboardClipEditPanel.setVisibility(View.GONE);
+            mLatinIME.updateInputViewShown();
+        }
         mEditingClipId = -1L;
         mEditingHistoryManager = null;
         // Restore original keyboard listener
@@ -719,7 +766,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         } else if (wasClipboard) {
             setClipboardKeyboard();
         } else if (wasClipEdit) {
-            if (mKeyboardClipEditPanel != null) mKeyboardClipEditPanel.setVisibility(View.VISIBLE);
+            if (mKeyboardClipEditPanel != null) {
+                mKeyboardClipEditPanel.setVisibility(View.VISIBLE);
+                mLatinIME.updateInputViewShown();
+            }
         }
     }
 
