@@ -66,9 +66,11 @@ fun AdvancedSettingsScreen(
         Settings.PREF_ALWAYS_INCOGNITO_MODE,
         Settings.PREF_KEY_LONGPRESS_TIMEOUT,
         Settings.PREF_SPACE_HORIZONTAL_SWIPE,
-        Settings.PREF_SPACE_VERTICAL_SWIPE,
+        Settings.PREF_SPACE_SWIPE_UP,
+        Settings.PREF_SPACE_SWIPE_DOWN,
         if (Settings.readHorizontalSpaceSwipe(prefs) == KeyboardActionListener.SWIPE_SWITCH_LANGUAGE
-            || Settings.readVerticalSpaceSwipe(prefs) == KeyboardActionListener.SWIPE_SWITCH_LANGUAGE)
+            || Settings.readSpaceSwipeUp(prefs) == KeyboardActionListener.SWIPE_SWITCH_LANGUAGE
+            || Settings.readSpaceSwipeDown(prefs) == KeyboardActionListener.SWIPE_SWITCH_LANGUAGE)
             Settings.PREF_LANGUAGE_SWIPE_DISTANCE else null,
         Settings.PREF_DELETE_SWIPE,
         Settings.PREF_SPACE_TO_CHANGE_LANG,
@@ -123,7 +125,7 @@ fun createAdvancedSettings(context: Context) = listOf(
         )
         ListPreference(it, items, Defaults.PREF_SPACE_HORIZONTAL_SWIPE)
     },
-    Setting(context, Settings.PREF_SPACE_VERTICAL_SWIPE, R.string.show_vertical_space_swipe) {
+    Setting(context, Settings.PREF_SPACE_SWIPE_UP, R.string.show_space_swipe_up) {
         val items = listOf(
             stringResource(R.string.space_swipe_move_cursor_entry) to "move_cursor",
             stringResource(R.string.switch_language) to "switch_language",
@@ -132,7 +134,18 @@ fun createAdvancedSettings(context: Context) = listOf(
             stringResource(R.string.calculator) to "calc",
             stringResource(R.string.action_none) to "none",
         )
-        ListPreference(it, items, Defaults.PREF_SPACE_VERTICAL_SWIPE)
+        ListPreference(it, items, Defaults.PREF_SPACE_SWIPE_UP)
+    },
+    Setting(context, Settings.PREF_SPACE_SWIPE_DOWN, R.string.show_space_swipe_down) {
+        val items = listOf(
+            stringResource(R.string.space_swipe_move_cursor_entry) to "move_cursor",
+            stringResource(R.string.switch_language) to "switch_language",
+            stringResource(R.string.space_swipe_toggle_numpad_entry) to "toggle_numpad",
+            stringResource(R.string.space_swipe_hide_keyboard_entry) to "hide_keyboard",
+            stringResource(R.string.calculator) to "calc",
+            stringResource(R.string.action_none) to "none",
+        )
+        ListPreference(it, items, Defaults.PREF_SPACE_SWIPE_DOWN)
     },
     Setting(context, Settings.PREF_LANGUAGE_SWIPE_DISTANCE, R.string.prefs_language_swipe_distance) { setting ->
         SliderPreference(

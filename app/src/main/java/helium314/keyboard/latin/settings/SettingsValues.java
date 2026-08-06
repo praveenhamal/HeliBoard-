@@ -76,7 +76,8 @@ public class SettingsValues {
     public final boolean mUseDoubleSpacePeriod;
     public final boolean mBlockPotentiallyOffensive;
     public final int mSpaceSwipeHorizontal;
-    public final int mSpaceSwipeVertical;
+    public final int mSpaceSwipeUp;
+    public final int mSpaceSwipeDown;
     public final int mLanguageSwipeDistance;
     public final boolean mDeleteSwipeEnabled;
     public final boolean mAutospaceAfterPunctuation;
@@ -257,7 +258,8 @@ public class SettingsValues {
         mKeyboardHeightScale = Settings.readHeightScale(prefs, isLandscape);
         mBottomRowScale = Settings.readBottomRowScale(prefs, isLandscape);
         mSpaceSwipeHorizontal = Settings.readHorizontalSpaceSwipe(prefs);
-        mSpaceSwipeVertical = Settings.readVerticalSpaceSwipe(prefs);
+        mSpaceSwipeUp = Settings.readSpaceSwipeUp(prefs);
+        mSpaceSwipeDown = Settings.readSpaceSwipeDown(prefs);
         mLanguageSwipeDistance = prefs.getInt(Settings.PREF_LANGUAGE_SWIPE_DISTANCE, Defaults.PREF_LANGUAGE_SWIPE_DISTANCE);
         mDeleteSwipeEnabled = prefs.getBoolean(Settings.PREF_DELETE_SWIPE, Defaults.PREF_DELETE_SWIPE);
         mAutospaceAfterPunctuation = prefs.getBoolean(Settings.PREF_AUTOSPACE_AFTER_PUNCTUATION, Defaults.PREF_AUTOSPACE_AFTER_PUNCTUATION);

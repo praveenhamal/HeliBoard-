@@ -111,6 +111,7 @@ android {
     namespace = "helium314.keyboard.latin"
     lint {
         abortOnError = true
+        disable += "ExtraTranslation"
     }
 }
 

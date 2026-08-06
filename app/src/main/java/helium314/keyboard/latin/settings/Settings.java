@@ -104,7 +104,8 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final String PREF_EMOJI_KEY_FIT = "emoji_key_fit";
     public static final String PREF_EMOJI_SKIN_TONE = "emoji_skin_tone";
     public static final String PREF_SPACE_HORIZONTAL_SWIPE = "horizontal_space_swipe";
-    public static final String PREF_SPACE_VERTICAL_SWIPE = "vertical_space_swipe";
+    public static final String PREF_SPACE_SWIPE_UP = "space_swipe_up";
+    public static final String PREF_SPACE_SWIPE_DOWN = "space_swipe_down";
     public static final String PREF_DELETE_SWIPE = "delete_swipe";
     public static final String PREF_AUTOSPACE_AFTER_PUNCTUATION = "autospace_after_punctuation";
     public static final String PREF_AUTOSPACE_AFTER_SUGGESTION = "autospace_after_suggestion";
@@ -351,8 +352,8 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
         };
     }
 
-    public static int readVerticalSpaceSwipe(final SharedPreferences prefs) {
-        return switch (prefs.getString(PREF_SPACE_VERTICAL_SWIPE, Defaults.PREF_SPACE_VERTICAL_SWIPE)) {
+    private static int readVerticalSwipeAction(final String value) {
+        return switch (value) {
             case "move_cursor" -> KeyboardActionListener.SWIPE_MOVE_CURSOR;
             case "switch_language" -> KeyboardActionListener.SWIPE_SWITCH_LANGUAGE;
             case "toggle_numpad" -> KeyboardActionListener.SWIPE_TOGGLE_NUMPAD;
@@ -360,6 +361,14 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
             case "calc" -> KeyboardActionListener.SWIPE_TOGGLE_CALC;
             default -> KeyboardActionListener.SWIPE_NO_ACTION;
         };
+    }
+
+    public static int readSpaceSwipeUp(final SharedPreferences prefs) {
+        return readVerticalSwipeAction(prefs.getString(PREF_SPACE_SWIPE_UP, Defaults.PREF_SPACE_SWIPE_UP));
+    }
+
+    public static int readSpaceSwipeDown(final SharedPreferences prefs) {
+        return readVerticalSwipeAction(prefs.getString(PREF_SPACE_SWIPE_DOWN, Defaults.PREF_SPACE_SWIPE_DOWN));
     }
 
     public static boolean readFullscreenModeAllowed(final Resources res) {

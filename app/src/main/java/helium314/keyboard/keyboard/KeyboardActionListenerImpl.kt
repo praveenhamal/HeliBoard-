@@ -156,7 +156,22 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         else -> false
     }
 
-    override fun onVerticalSpaceSwipe(steps: Int): Boolean = when (Settings.getValues().mSpaceSwipeVertical) {
+    override fun onSpaceSwipeUp(steps: Int): Boolean = when (Settings.getValues().mSpaceSwipeUp) {
+        KeyboardActionListener.SWIPE_MOVE_CURSOR -> onMoveCursorVertically(steps)
+        KeyboardActionListener.SWIPE_SWITCH_LANGUAGE -> onLanguageSlide(steps)
+        KeyboardActionListener.SWIPE_TOGGLE_NUMPAD -> toggleNumpad(false, false)
+        KeyboardActionListener.SWIPE_HIDE_KEYBOARD -> {
+            latinIME.requestHideSelf(0)
+            true
+        }
+        KeyboardActionListener.SWIPE_TOGGLE_CALC -> {
+            keyboardSwitcher.setCalculatorKeyboard()
+            true
+        }
+        else -> false
+    }
+
+    override fun onSpaceSwipeDown(steps: Int): Boolean = when (Settings.getValues().mSpaceSwipeDown) {
         KeyboardActionListener.SWIPE_MOVE_CURSOR -> onMoveCursorVertically(steps)
         KeyboardActionListener.SWIPE_SWITCH_LANGUAGE -> onLanguageSlide(steps)
         KeyboardActionListener.SWIPE_TOGGLE_NUMPAD -> toggleNumpad(false, false)

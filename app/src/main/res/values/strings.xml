@@ -893,8 +893,10 @@ New dictionary:
     <string name="label_bin" tools:keep="@string/label_bin">Bin</string>
     <!-- Title of the setting for horizontal spacebar swipe gesture -->
     <string name="show_horizontal_space_swipe">Horizontal spacebar swipe gesture</string>
-    <!-- Title of the setting for vertical spacebar swipe gesture -->
-    <string name="show_vertical_space_swipe">Vertical spacebar swipe gesture</string>
+    <!-- Title of the setting for spacebar swipe up gesture -->
+    <string name="show_space_swipe_up">Spacebar swipe up gesture</string>
+    <!-- Title of the setting for spacebar swipe down gesture -->
+    <string name="show_space_swipe_down">Spacebar swipe down gesture</string>
     <!-- Option for no action when (currently only used for swiping the spacebar) -->
     <string name="action_none">None</string>
     <!-- Option to move the cursor when swiping the spacebar -->

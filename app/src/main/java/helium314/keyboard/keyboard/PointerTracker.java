@@ -752,7 +752,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         final SettingsValues sv = Settings.getValues();
         return switch (code) {
             case Constants.CODE_SPACE -> sv.mSpaceSwipeHorizontal != KeyboardActionListener.SWIPE_NO_ACTION
-                    || sv.mSpaceSwipeVertical != KeyboardActionListener.SWIPE_NO_ACTION;
+                    || sv.mSpaceSwipeUp != KeyboardActionListener.SWIPE_NO_ACTION
+                    || sv.mSpaceSwipeDown != KeyboardActionListener.SWIPE_NO_ACTION;
             case KeyCode.DELETE -> sv.mDeleteSwipeEnabled;
             default -> false;
         };
@@ -938,12 +939,23 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             // Vertical movement
             int stepsY = dY / sPointerStep;
             if (stepsY != 0 && abs(dX) < abs(dY) && !mInHorizontalSwipe) {
-                if (!mInVerticalSwipe) {
+                final boolean firstStep = !mInVerticalSwipe;
+                if (firstStep) {
                     sTimerProxy.cancelKeyTimersOf(this);
                     mInVerticalSwipe = true;
-                } else if (oneShotSwipe(sv.mSpaceSwipeVertical)) return;
-                if (sListener.onVerticalSpaceSwipe(stepsY)) {
-                    mStartY += stepsY * sPointerStep;
+                }
+                if (stepsY < 0) {
+                    // Swipe UP
+                    if (!firstStep && oneShotSwipe(sv.mSpaceSwipeUp)) return;
+                    if (sListener.onSpaceSwipeUp(stepsY)) {
+                        mStartY += stepsY * sPointerStep;
+                    }
+                } else {
+                    // Swipe DOWN
+                    if (!firstStep && oneShotSwipe(sv.mSpaceSwipeDown)) return;
+                    if (sListener.onSpaceSwipeDown(stepsY)) {
+                        mStartY += stepsY * sPointerStep;
+                    }
                 }
                 return;
             }
