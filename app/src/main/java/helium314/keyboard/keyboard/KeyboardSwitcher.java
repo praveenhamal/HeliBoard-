@@ -7,6 +7,8 @@
 package helium314.keyboard.keyboard;
 
 import android.annotation.SuppressLint;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -439,6 +441,13 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         final String result = mCalcInputView.currentResult();
         if (result != null && !result.isEmpty()) {
             mLatinIME.onTextInput(result);
+            final ClipboardManager cm = (ClipboardManager) mLatinIME.getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm != null) {
+                cm.setPrimaryClip(ClipData.newPlainText("calculator result", result));
+            }
+            if (mLatinIME.getClipboardHistoryManager() != null) {
+                mLatinIME.getClipboardHistoryManager().addClip(result, false, "");
+            }
         }
         // Always close the calculator and return to ABC keyboard
         closeCalculator();

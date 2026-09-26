@@ -91,17 +91,38 @@ class ClipboardDao private constructor(private val db: Database) {
 
     fun isPinned(index: Int) = cache[index].isPinned
 
-    /** Update the text and trigger key of an existing entry. */
+    /** Update the text and trigger key of an existing entry. If a trigger key is added to an unpinned clip, it is automatically pinned. */
     fun updateClip(id: Long, newText: String, newTriggerKey: String) {
         val entry = cache.firstOrNull { it.id == id } ?: return
+        val wasPinned = entry.isPinned
+        val willPin = !wasPinned && newTriggerKey.isNotBlank()
         entry.text = newText
         entry.triggerKey = newTriggerKey
-        val cv = ContentValues(2)
+        if (willPin) {
+            entry.isPinned = true
+            entry.timeStamp = System.currentTimeMillis()
+        }
+        val cv = ContentValues(4)
         cv.put(COLUMN_TEXT, newText)
         cv.put(COLUMN_TRIGGER_KEY, newTriggerKey)
+        if (willPin) {
+            cv.put(COLUMN_PINNED, 1)
+            cv.put(COLUMN_TIMESTAMP, entry.timeStamp)
+        }
         db.writableDatabase.update(TABLE, cv, "$COLUMN_ID = ${entry.id}", null)
-        // notify adapter about change
-        listener?.onClipChanged(cache.indexOf(entry))
+        if (willPin) {
+            val oldPos = cache.indexOf(entry)
+            cache.sort()
+            val newPos = cache.indexOf(entry)
+            if (listener != null) {
+                if (oldPos != newPos) {
+                    listener?.onClipMoved(oldPos, newPos)
+                }
+                listener?.onClipChanged(newPos)
+            }
+        } else {
+            listener?.onClipChanged(cache.indexOf(entry))
+        }
     }
 
     /** Return the first clip whose triggerKey matches the given word (case-insensitive), or null. */
@@ -113,7 +134,7 @@ class ClipboardDao private constructor(private val db: Database) {
 
     fun getAt(index: Int) = cache[index]
 
-    fun get(id: Long) = cache.first { it.id == id }
+    fun get(id: Long) = cache.firstOrNull { it.id == id }
 
     fun count() = cache.size
 
@@ -137,11 +158,21 @@ class ClipboardDao private constructor(private val db: Database) {
         db.writableDatabase.update(TABLE, cv, "$COLUMN_ID = ${entry.id}", null)
     }
 
+    fun deleteClip(id: Long): Int {
+        val index = cache.indexOfFirst { it.id == id }
+        if (index != -1) {
+            val entry = cache.removeAt(index)
+            db.writableDatabase.delete(TABLE, "$COLUMN_ID = ${entry.id}", null)
+        }
+        return index
+    }
+
     // RecyclerView initiates this, so we don't call listener (or we'll get an IndexOutOfRangeException from RecyclerView)
     fun deleteClipAt(index: Int) {
-        val entry = cache[index]
-        cache.remove(entry)
-        db.writableDatabase.delete(TABLE, "$COLUMN_ID = ${entry.id}", null)
+        if (index in cache.indices) {
+            val entry = cache.removeAt(index)
+            db.writableDatabase.delete(TABLE, "$COLUMN_ID = ${entry.id}", null)
+        }
     }
 
     fun clearOldClips(now: Boolean = false) {

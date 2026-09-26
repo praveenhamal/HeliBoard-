@@ -62,6 +62,14 @@ class ClipboardHistoryManager(
         }
     }
 
+    @JvmOverloads
+    fun addClip(text: String, pinned: Boolean = false, triggerKey: String = "") {
+        if (text.isEmpty()) return
+        if (latinIME.mSettings.current.mClipboardHistoryEnabled) {
+            clipboardDao?.addClip(System.currentTimeMillis(), pinned, text, triggerKey)
+        }
+    }
+
     fun toggleClipPinned(id: Long) {
         clipboardDao?.togglePinned(id)
     }
@@ -143,6 +151,8 @@ class ClipboardHistoryManager(
         if (canRemove(index))
             clipboardDao?.deleteClipAt(index)
     }
+
+    fun deleteClip(id: Long): Int = clipboardDao?.deleteClip(id) ?: -1
 
     fun sortHistoryEntries() {
         clipboardDao?.sort()

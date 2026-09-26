@@ -191,9 +191,13 @@ class ClipboardAdapter(
             // Delete
             layout.addView(item(ctx.getString(R.string.clipboard_menu_delete)) {
                 val pos = bindingAdapterPosition
-                if (pos != RecyclerView.NO_POSITION) {
-                    manager.removeEntry(pos)
-                    notifyItemRemoved(pos)
+                val removedPos = manager.deleteClip(id)
+                val targetPos = if (pos != RecyclerView.NO_POSITION) pos else removedPos
+                if (targetPos != -1) {
+                    notifyItemRemoved(targetPos)
+                    if (targetPos < itemCount) {
+                        notifyItemRangeChanged(targetPos, itemCount - targetPos)
+                    }
                 }
             })
 
