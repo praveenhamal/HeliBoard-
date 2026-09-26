@@ -210,8 +210,9 @@ class ClipboardDao private constructor(private val db: Database) {
 
     fun clear() {
         if (count() == 0) return
+        val oldCount = count()
         cache.clear()
-        listener?.onClipsRemoved(0, count())
+        listener?.onClipsRemoved(0, oldCount)
         db.writableDatabase.delete(TABLE, null, null)
     }
 
