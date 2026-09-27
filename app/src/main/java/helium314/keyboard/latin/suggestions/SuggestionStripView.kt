@@ -189,7 +189,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
                 val dy = me.y - down.y
                 val dx = me.x - down.x
 
-                if (Settings.getValues().mToolbarSwipeDownToHide && dy > 50.dpToPx(resources) && abs(dy) > abs(dx)) {
+                if (Settings.getValues().mToolbarSwipeAction != "nothing" && dy > 50.dpToPx(resources) && abs(dy) > abs(dx)) {
                     listener.onSwipeDownOnToolbar()
                     return true
                 }
@@ -204,6 +204,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     // public stuff
 
     val isShowingMoreSuggestionPanel get() = moreSuggestionsView.isShowingInParent
+
+    fun isToolbarVisible(): Boolean = toolbarContainer.visibility == VISIBLE
 
     /** A connection back to the input method. */
     fun setListener(newListener: Listener, inputView: View) {
