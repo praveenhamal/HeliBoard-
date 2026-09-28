@@ -27,6 +27,7 @@ import helium314.keyboard.latin.inputlogic.InputLogic
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.SubtypeSettings
 import kotlin.math.abs
+import kotlin.math.max
 import kotlin.math.min
 
 class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inputLogic: InputLogic) : KeyboardActionListener {
@@ -46,8 +47,20 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     private var initialSubtype: InputMethodSubtype? = null
     private var subtypeSwitchCount = 0
 
+    // shift selection mode state
+    private var isShiftSelectionMode = false
+    private var selectionAnchor = -1
+    private var selectionCursor = -1
+
+    // tracks whether the Shift key is physically held down right now
+    private var isShiftHeld = false
+
     override fun onPressKey(primaryCode: Int, repeatCount: Int, isSinglePointer: Boolean, hapticEvent: HapticEvent) {
         metaOnPressKey(primaryCode)
+        // Track physical shift-key hold so we can activate selection on cursor movement
+        if (primaryCode == KeyCode.SHIFT) {
+            isShiftHeld = true
+        }
         keyboardSwitcher.onPressKey(primaryCode, isSinglePointer, latinIME.currentAutoCapsState, latinIME.currentRecapitalizeState)
         // we need to use LatinIME for handling of key-down audio and haptics
         latinIME.hapticAndAudioFeedback(primaryCode, repeatCount, hapticEvent)
@@ -60,6 +73,34 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     override fun onReleaseKey(primaryCode: Int, withSliding: Boolean) {
         metaOnReleaseKey(primaryCode)
+        if (primaryCode == KeyCode.SHIFT) {
+            // Shift was released: if we were in held-shift selection mode, exit it cleanly
+            if (isShiftHeld) {
+                isShiftHeld = false
+                // If the held-shift activated selection mode, keep the selection but collapse
+                // the internal anchor/cursor so CAPS_LOCK mode can still work independently.
+                // Do NOT collapse the editor selection here — let the user keep the selection
+                // they just made by holding Shift and moving the cursor.
+                selectionAnchor = -1
+                selectionCursor = -1
+                // Only clear isShiftSelectionMode if it was not activated via CAPS_LOCK
+                if (keyboardSwitcher.keyboard?.mId?.isAlphabetShiftLocked != true) {
+                    isShiftSelectionMode = false
+                }
+            }
+        }
+        if (isShiftSelectionMode && (primaryCode == KeyCode.SHIFT || primaryCode == KeyCode.CAPS_LOCK)) {
+            val isShiftLocked = keyboardSwitcher.keyboard?.mId?.isAlphabetShiftLocked == true
+            if (!isShiftLocked || primaryCode == KeyCode.SHIFT) {
+                isShiftSelectionMode = false
+                if (connection.hasSelection()) {
+                    val endPos = connection.expectedSelectionEnd
+                    connection.setSelection(endPos, endPos)
+                }
+                selectionAnchor = -1
+                selectionCursor = -1
+            }
+        }
         keyboardSwitcher.onReleaseKey(primaryCode, withSliding, latinIME.currentAutoCapsState, latinIME.currentRecapitalizeState)
     }
 
@@ -104,22 +145,55 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             KeyCode.TOGGLE_AUTOCORRECT -> return settings.toggleAutoCorrect()
             KeyCode.TOGGLE_INCOGNITO_MODE -> return settings.toggleAlwaysIncognitoMode()
         }
+        if (primaryCode == KeyCode.CAPS_LOCK && Settings.getValues().mShiftSelectionMode) {
+            isShiftSelectionMode = !isShiftSelectionMode
+            if (isShiftSelectionMode) {
+                selectionAnchor = connection.expectedSelectionStart
+                selectionCursor = selectionAnchor
+            } else {
+                if (connection.hasSelection()) {
+                    val endPos = connection.expectedSelectionEnd
+                    connection.setSelection(endPos, endPos)
+                }
+                selectionAnchor = -1
+                selectionCursor = -1
+            }
+        }
+        val isCursorMoveCode = primaryCode == KeyCode.ARROW_LEFT || primaryCode == KeyCode.ARROW_RIGHT ||
+                primaryCode == KeyCode.ARROW_UP || primaryCode == KeyCode.ARROW_DOWN ||
+                primaryCode == KeyCode.PAGE_UP || primaryCode == KeyCode.PAGE_DOWN ||
+                primaryCode == KeyCode.WORD_LEFT || primaryCode == KeyCode.WORD_RIGHT ||
+                primaryCode == KeyCode.MOVE_START_OF_LINE || primaryCode == KeyCode.MOVE_END_OF_LINE ||
+                primaryCode == KeyCode.MOVE_START_OF_PAGE || primaryCode == KeyCode.MOVE_END_OF_PAGE
+
+        // If Shift is physically held and a cursor key is pressed, activate selection mode
+        // on-the-fly (same as CAPS_LOCK mode but driven by the live hold state)
+        val shiftHeldSelection = isShiftHeld && isCursorMoveCode
+        if (shiftHeldSelection && selectionAnchor < 0) {
+            selectionAnchor = connection.expectedSelectionStart
+            selectionCursor = selectionAnchor
+        }
+
+        val currentMeta = if ((isShiftSelectionMode && Settings.getValues().mShiftSelectionMode || shiftHeldSelection) && isCursorMoveCode) {
+            metaState or KeyEvent.META_SHIFT_ON
+        } else {
+            metaState
+        }
         val mkv = keyboardSwitcher.mainKeyboardView
 
         // checking if the character is a combining accent
         val event = if (primaryCode in combiningRange) { // todo: should this be done later, maybe in inputLogic?
-            Event.createSoftwareDeadEvent(primaryCode, 0, metaState, mkv.getKeyX(x), mkv.getKeyY(y), null)
+            Event.createSoftwareDeadEvent(primaryCode, 0, currentMeta, mkv.getKeyX(x), mkv.getKeyY(y), null)
         } else {
-            // todo:
-            //  setting meta shift should only be done for arrow and similar cursor movement keys
-            //  should only be enabled once it works more reliably (currently depends on app for some reason)
-//            if (mkv.keyboard?.mId?.isAlphabetShiftedManually == true)
-//                Event.createSoftwareKeypressEvent(primaryCode, metaState or KeyEvent.META_SHIFT_ON, mkv.getKeyX(x), mkv.getKeyY(y), isKeyRepeat)
-//            else Event.createSoftwareKeypressEvent(primaryCode, metaState, mkv.getKeyX(x), mkv.getKeyY(y), isKeyRepeat)
-            Event.createSoftwareKeypressEvent(primaryCode, metaState, mkv.getKeyX(x), mkv.getKeyY(y), isKeyRepeat)
+            Event.createSoftwareKeypressEvent(primaryCode, currentMeta, mkv.getKeyX(x), mkv.getKeyY(y), isKeyRepeat)
         }
         latinIME.onEvent(event)
         metaAfterCodeInput(primaryCode)
+        if (isShiftSelectionMode && !isCursorMoveCode && primaryCode != KeyCode.CAPS_LOCK && primaryCode != KeyCode.SHIFT) {
+            isShiftSelectionMode = false
+            selectionAnchor = -1
+            selectionCursor = -1
+        }
     }
 
     override fun onTextInput(text: String?) = latinIME.onTextInput(text)
@@ -233,6 +307,10 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     override fun resetMetaState() {
         metaState = 0
+        isShiftSelectionMode = false
+        isShiftHeld = false
+        selectionAnchor = -1
+        selectionCursor = -1
     }
 
     private fun onLanguageSlide(steps: Int): Boolean {
@@ -314,6 +392,19 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
                 return true
             }
             gestureMoveForwardHaptics(text.isNotEmpty())
+        }
+
+        if ((isShiftSelectionMode && Settings.getValues().mShiftSelectionMode) || isShiftHeld) {
+            inputLogic.finishInput()
+            if (selectionAnchor < 0) {
+                selectionAnchor = connection.expectedSelectionStart
+                selectionCursor = selectionAnchor
+            }
+            selectionCursor += moveSteps
+            val selStart = min(selectionAnchor, selectionCursor)
+            val selEnd = max(selectionAnchor, selectionCursor)
+            connection.setSelection(selStart, selEnd)
+            return true
         }
 
         // the shortcut below causes issues due to horrible handling of text fields by Firefox and forks

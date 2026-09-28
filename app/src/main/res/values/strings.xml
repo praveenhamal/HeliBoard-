@@ -40,6 +40,9 @@
     <string name="toolbar_swipe_action_nothing">Nothing</string>
     <string name="toolbar_swipe_action_hide_keyboard">Hide keyboard</string>
     <string name="toolbar_swipe_action_toggle_toolbar">Toggle Toolbar/Suggestionbar</string>
+    <!-- Option for text selection mode with shift -->
+    <string name="shift_selection_mode">Shift selection mode</string>
+    <string name="shift_selection_mode_summary">Select text with cursor keys and space swipe while caps lock is active</string>
     <!-- Settings screen title for preferences-->
     <string name="settings_screen_preferences">Preferences</string>
     <!-- Settings screen title for gesture typing preferences -->

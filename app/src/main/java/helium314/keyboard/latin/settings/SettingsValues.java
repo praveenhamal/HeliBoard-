@@ -123,6 +123,7 @@ public class SettingsValues {
     public final float mSidePaddingScale;
     public final ToolbarMode mToolbarMode;
     public final String mToolbarSwipeAction;
+    public final boolean mShiftSelectionMode;
     public final boolean mToolbarHidingGlobal;
     public final boolean mAutoShowToolbar;
     public final boolean mAutoHideToolbar;
@@ -174,6 +175,7 @@ public class SettingsValues {
         // Get the settings preferences
         mToolbarMode = Settings.readToolbarMode(prefs);
         mToolbarSwipeAction = prefs.getString(Settings.PREF_TOOLBAR_SWIPE_ACTION, Defaults.PREF_TOOLBAR_SWIPE_ACTION);
+        mShiftSelectionMode = prefs.getBoolean(Settings.PREF_SHIFT_SELECTION_MODE, Defaults.PREF_SHIFT_SELECTION_MODE);
         mToolbarHidingGlobal = prefs.getBoolean(Settings.PREF_TOOLBAR_HIDING_GLOBAL, Defaults.PREF_TOOLBAR_HIDING_GLOBAL);
         mAutoCap = prefs.getBoolean(Settings.PREF_AUTO_CAP, Defaults.PREF_AUTO_CAP) && ScriptUtils.scriptSupportsUppercase(mLocale);
         mVibrateOn = Settings.readVibrationEnabled(prefs);

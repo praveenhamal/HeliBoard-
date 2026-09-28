@@ -180,6 +180,7 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final String PREF_TOOLBAR_MODE = "toolbar_mode";
     public static final String PREF_TOOLBAR_HIDING_GLOBAL = "toolbar_hiding_global";
     public static final String PREF_TOOLBAR_SWIPE_ACTION = "toolbar_swipe_action";
+    public static final String PREF_SHIFT_SELECTION_MODE = "shift_selection_mode";
 
     // Emoji
     public static final String PREF_EMOJI_MAX_SDK = "emoji_max_sdk";

@@ -61,6 +61,7 @@ fun ToolbarScreen(
         Settings.PREF_TOOLBAR_MODE,
         if (toolbarMode == ToolbarMode.HIDDEN) Settings.PREF_TOOLBAR_HIDING_GLOBAL else null,
         if (toolbarMode != ToolbarMode.HIDDEN) Settings.PREF_TOOLBAR_SWIPE_ACTION else null,
+        Settings.PREF_SHIFT_SELECTION_MODE,
         if (toolbarMode in listOf(ToolbarMode.EXPANDABLE, ToolbarMode.TOOLBAR_KEYS))
             Settings.PREF_TOOLBAR_KEYS else null,
         if (toolbarMode in listOf(ToolbarMode.EXPANDABLE, ToolbarMode.SUGGESTION_STRIP))
@@ -109,6 +110,11 @@ fun createToolbarSettings(context: Context) = listOf(
             items,
             Defaults.PREF_TOOLBAR_SWIPE_ACTION
         )
+    },
+    Setting(context, Settings.PREF_SHIFT_SELECTION_MODE,
+        R.string.shift_selection_mode, R.string.shift_selection_mode_summary)
+    {
+        SwitchPreference(it, Defaults.PREF_SHIFT_SELECTION_MODE)
     },
     Setting(context, Settings.PREF_TOOLBAR_KEYS, R.string.toolbar_keys) {
         ReorderSwitchPreference(it, Defaults.PREF_TOOLBAR_KEYS)
