@@ -120,7 +120,7 @@ object Defaults {
     const val PREF_GESTURE_FAST_TYPING_COOLDOWN = 500
     const val PREF_GESTURE_TRAIL_FADEOUT_DURATION = 800
     const val PREF_SHOW_SETUP_WIZARD_ICON = true
-    const val PREF_USE_CONTACTS = true
+    const val PREF_USE_CONTACTS = false
     const val PREF_USE_APPS = false
     const val PREFS_LONG_PRESS_SYMBOLS_FOR_NUMPAD = false
     const val PREF_ONE_HANDED_MODE = false
@@ -153,13 +153,13 @@ object Defaults {
     const val PREF_DONT_SHOW_MISSING_DICTIONARY_DIALOG = false
     const val PREF_TOOLBAR_MODE = "EXPANDABLE"
     const val PREF_TOOLBAR_HIDING_GLOBAL = true
-    const val PREF_TOOLBAR_SWIPE_ACTION = "nothing"
-    const val PREF_SHIFT_SELECTION_MODE = false
+    const val PREF_TOOLBAR_SWIPE_ACTION = "toggle_toolbar"
+    const val PREF_SHIFT_SELECTION_MODE = true
     const val PREF_QUICK_PIN_TOOLBAR_KEYS = false
     val PREF_PINNED_TOOLBAR_KEYS = defaultPinnedToolbarPref
     val PREF_TOOLBAR_KEYS = defaultToolbarPref
     const val PREF_AUTO_SHOW_TOOLBAR = false
-    const val PREF_AUTO_HIDE_TOOLBAR = true
+    const val PREF_AUTO_HIDE_TOOLBAR = false
     val PREF_CLIPBOARD_TOOLBAR_KEYS = defaultClipboardToolbarPref
     const val PREF_ABC_AFTER_EMOJI = false
     const val PREF_ABC_AFTER_CLIP = true
