@@ -110,6 +110,9 @@ public interface KeyboardActionListener {
     boolean onHorizontalSpaceSwipe(int steps);
     boolean onSpaceSwipeUp(int steps);
     boolean onSpaceSwipeDown(int steps);
+    default boolean onVerticalSpaceSwipe(int steps) {
+        return false;
+    }
     void onEndSpaceSwipe();
     boolean toggleNumpad(boolean withSliding, boolean forceReturnToAlpha);
 
@@ -167,6 +170,10 @@ public interface KeyboardActionListener {
         }
         @Override
         public boolean onSpaceSwipeDown(int steps) {
+            return false;
+        }
+        @Override
+        public boolean onVerticalSpaceSwipe(int steps) {
             return false;
         }
         @Override

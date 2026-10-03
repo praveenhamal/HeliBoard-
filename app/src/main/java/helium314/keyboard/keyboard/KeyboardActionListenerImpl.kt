@@ -54,6 +54,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     // tracks whether the Shift key is physically held down right now
     private var isShiftHeld = false
+    private var cursorMovedInSpaceSwipe = false
 
     override fun onPressKey(primaryCode: Int, repeatCount: Int, isSinglePointer: Boolean, hapticEvent: HapticEvent) {
         metaOnPressKey(primaryCode)
@@ -207,7 +208,9 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     override fun onCancelBatchInput() = latinIME.onCancelBatchInput()
 
     // User released a finger outside any key
-    override fun onCancelInput() { }
+    override fun onCancelInput() {
+        cursorMovedInSpaceSwipe = false
+    }
 
     override fun onFinishSlidingInput() =
         keyboardSwitcher.onFinishSlidingInput(latinIME.currentAutoCapsState, latinIME.currentRecapitalizeState)
@@ -260,9 +263,15 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         else -> false
     }
 
+    override fun onVerticalSpaceSwipe(steps: Int): Boolean = onMoveCursorVertically(steps)
+
     override fun onEndSpaceSwipe(){
         initialSubtype = null
         subtypeSwitchCount = 0
+        if (cursorMovedInSpaceSwipe) {
+            cursorMovedInSpaceSwipe = false
+            inputLogic.restartSuggestionsOnWordTouchedByCursor(settings.current, keyboardSwitcher.currentKeyboardScript)
+        }
     }
 
     override fun toggleNumpad(withSliding: Boolean, forceReturnToAlpha: Boolean): Boolean {
@@ -341,16 +350,44 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         return true
     }
 
+    private fun isMultiLine(): Boolean {
+        val inputAttributes = Settings.getValues().mInputAttributes ?: return false
+        val inputType = inputAttributes.mInputType
+        val inputClass = inputType and InputType.TYPE_MASK_CLASS
+        if (inputClass != InputType.TYPE_CLASS_TEXT) return false
+        return (inputType and InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0
+    }
+
     private fun onMoveCursorVertically(steps: Int): Boolean {
         if (steps == 0) return false
-        val code = if (steps < 0) {
-            gestureMoveBackHaptics()
-            KeyCode.ARROW_UP
+        if (!isMultiLine()) return true
+
+        // Dispatch real DPAD_UP / DPAD_DOWN key events to the editor.
+        // This delegates vertical movement entirely to the editor's own layout engine,
+        // which correctly handles both hard newlines and soft-wrapped lines while
+        // preserving the horizontal column position — identical to Samsung Keyboard / Gboard.
+        val absSteps = kotlin.math.abs(steps)
+        val keyCode = if (steps < 0) KeyEvent.KEYCODE_DPAD_UP else KeyEvent.KEYCODE_DPAD_DOWN
+
+        val metaForEvent = if ((isShiftSelectionMode && Settings.getValues().mShiftSelectionMode) || isShiftHeld) {
+            KeyEvent.META_SHIFT_ON
         } else {
-            gestureMoveForwardHaptics()
-            KeyCode.ARROW_DOWN
+            0
         }
-        onCodeInput(code, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+
+        inputLogic.finishInput()
+
+        val downTime = android.os.SystemClock.uptimeMillis()
+        repeat(absSteps) { i ->
+            val eventTime = downTime + i
+            val keyDown = KeyEvent(downTime, eventTime, KeyEvent.ACTION_DOWN, keyCode, 0, metaForEvent)
+            val keyUp   = KeyEvent(downTime, eventTime, KeyEvent.ACTION_UP,   keyCode, 0, metaForEvent)
+            connection.sendKeyEvent(keyDown)
+            connection.sendKeyEvent(keyUp)
+        }
+
+        cursorMovedInSpaceSwipe = true
+        if (steps < 0) gestureMoveBackHaptics() else gestureMoveForwardHaptics()
         return true
     }
 
@@ -395,7 +432,10 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         }
 
         if ((isShiftSelectionMode && Settings.getValues().mShiftSelectionMode) || isShiftHeld) {
-            inputLogic.finishInput()
+            if (!cursorMovedInSpaceSwipe) {
+                inputLogic.finishInput()
+            }
+            cursorMovedInSpaceSwipe = true
             if (selectionAnchor < 0) {
                 selectionAnchor = connection.expectedSelectionStart
                 selectionCursor = selectionAnchor
@@ -407,6 +447,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             return true
         }
 
+        cursorMovedInSpaceSwipe = true
         // the shortcut below causes issues due to horrible handling of text fields by Firefox and forks
         // issues:
         //  * setSelection "will cause the editor to call onUpdateSelection", see: https://developer.android.com/reference/android/view/inputmethod/InputConnection#setSelection(int,%20int)
@@ -427,7 +468,6 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         inputLogic.finishInput()
         val newPosition = connection.expectedSelectionStart + moveSteps
         connection.setSelection(newPosition, newPosition)
-        inputLogic.restartSuggestionsOnWordTouchedByCursor(settings.current, keyboardSwitcher.currentKeyboardScript)
         return true
     }
 

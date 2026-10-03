@@ -103,6 +103,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     // Parameters for pointer handling.
     private static PointerTrackerParams sParams;
     private static final int sPointerStep = KtxKt.dpToPx(10, Resources.getSystem());
+    private static final int sSpacePointerStepX = KtxKt.dpToPx(15, Resources.getSystem());
+    private static final int sSpacePointerStepY = KtxKt.dpToPx(32, Resources.getSystem());
     private static GestureStrokeRecognitionParams sGestureStrokeRecognitionParams;
     private static GestureStrokeDrawingParams sGestureStrokeDrawingParams;
 
@@ -145,6 +147,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     private long mStartTime;
     private boolean mInHorizontalSwipe = false;
     private boolean mInVerticalSwipe = false;
+    // Baseline Y at the moment a horizontal swipe starts; used to measure accumulated vertical
+    // drift so that mStartY = y (anti-wobble tracking) does not prevent up/down detection.
+    private int mHorizontalSwipeBaseY;
 
     // true if keyboard layout has been changed.
     private boolean mKeyboardLayoutHasBeenChanged;
@@ -933,42 +938,118 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         if (System.currentTimeMillis() < mStartTime + fastTypingTimeout && sTypingTimeRecorder.isInFastTyping(eventTime))
             return;
         if (code == Constants.CODE_SPACE) {
-            int dX = x - mStartX;
-            int dY = y - mStartY;
+            final boolean isCursorMove = sv.mSpaceSwipeHorizontal == KeyboardActionListener.SWIPE_MOVE_CURSOR;
+            final int stepX = isCursorMove ? sSpacePointerStepX : sPointerStep;
+            final int dX = x - mStartX;
+            final int dY = y - mStartY;
+            final int absDX = abs(dX);
+            final int absDY = abs(dY);
 
-            // Vertical movement
-            int stepsY = dY / sPointerStep;
-            if (stepsY != 0 && abs(dX) < abs(dY) && !mInHorizontalSwipe) {
-                final boolean firstStep = !mInVerticalSwipe;
-                if (firstStep) {
-                    sTimerProxy.cancelKeyTimersOf(this);
-                    mInVerticalSwipe = true;
-                }
-                if (stepsY < 0) {
-                    // Swipe UP
-                    if (!firstStep && oneShotSwipe(sv.mSpaceSwipeUp)) return;
-                    if (sListener.onSpaceSwipeUp(stepsY)) {
-                        mStartY += stepsY * sPointerStep;
-                    }
-                } else {
-                    // Swipe DOWN
-                    if (!firstStep && oneShotSwipe(sv.mSpaceSwipeDown)) return;
-                    if (sListener.onSpaceSwipeDown(stepsY)) {
-                        mStartY += stepsY * sPointerStep;
+            // Vertical movement already in progress
+            if (mInVerticalSwipe) {
+                // oneShotSwipe returns true for actions that fire once (numpad, hide keyboard, etc.)
+                // For those we already fired on the first step, so keep returning without re-firing.
+                final int swipeSetting = (dY < 0) ? sv.mSpaceSwipeUp : sv.mSpaceSwipeDown;
+                if (oneShotSwipe(swipeSetting)) return;
+                final boolean isVerticalCursorMove = (sv.mSpaceSwipeUp == KeyboardActionListener.SWIPE_MOVE_CURSOR
+                        || sv.mSpaceSwipeDown == KeyboardActionListener.SWIPE_MOVE_CURSOR);
+                final int stepY = isVerticalCursorMove ? sSpacePointerStepY : sPointerStep;
+                final int stepsY = dY / stepY;
+                if (stepsY != 0) {
+                    if (stepsY < 0) {
+                        if (sListener.onSpaceSwipeUp(stepsY)) {
+                            mStartY += stepsY * stepY;
+                            mStartX = x;
+                        }
+                    } else {
+                        if (sListener.onSpaceSwipeDown(stepsY)) {
+                            mStartY += stepsY * stepY;
+                            mStartX = x;
+                        }
                     }
                 }
                 return;
             }
 
-            // Horizontal movement
-            int stepsX = dX / sPointerStep;
-            if (stepsX != 0 && !mInVerticalSwipe) {
-                if (!mInHorizontalSwipe) {
+            // Horizontal movement already in progress
+            if (mInHorizontalSwipe) {
+                if (oneShotSwipe(sv.mSpaceSwipeHorizontal)) return;
+
+                if (isCursorMove) {
+                    // Measure vertical drift from the stable baseline captured at horizontal-swipe start.
+                    // Using mHorizontalSwipeBaseY instead of mStartY ensures that the continuous
+                    // anti-wobble reset (mStartY = y) below does NOT prevent up/down detection.
+                    final int dYFromBase = y - mHorizontalSwipeBaseY;
+                    final int absDYFromBase = abs(dYFromBase);
+                    // Check if user is intentionally swiping vertically across text lines (iOS trackpad style)
+                    // Must exceed a full line threshold and have vertical dominance over horizontal motion
+                    if (absDYFromBase >= sSpacePointerStepY && absDYFromBase > (int)(absDX * 1.2f)) {
+                        final int stepsY = dYFromBase / sSpacePointerStepY;
+                        if (stepsY != 0) {
+                            sListener.onVerticalSpaceSwipe(stepsY);
+                            mHorizontalSwipeBaseY += stepsY * sSpacePointerStepY;
+                            mStartY = y; // keep anti-wobble tracking current
+                            mStartX = x; // Reset horizontal origin so horizontal drift doesn't accumulate
+                        }
+                    } else {
+                        // User is moving horizontally: process horizontal steps
+                        final int stepsX = dX / sSpacePointerStepX;
+                        if (stepsX != 0) {
+                            if (sListener.onHorizontalSpaceSwipe(stepsX)) {
+                                mStartX += stepsX * sSpacePointerStepX;
+                            }
+                        }
+                        // Continuous tracking of vertical position prevents small natural thumb arcs/wobbles
+                        // from slowly accumulating into an unwanted vertical jump while swiping horizontally!
+                        mStartY = y;
+                    }
+                } else {
+                    final int stepsX = dX / stepX;
+                    if (stepsX != 0) {
+                        if (sListener.onHorizontalSpaceSwipe(stepsX)) {
+                            mStartX += stepsX * stepX;
+                        }
+                    }
+                }
+                return;
+            }
+
+            // Neither swipe active yet: determine initial direction
+            if (absDX >= absDY) {
+                final int stepsX = dX / stepX;
+                if (stepsX != 0) {
                     sTimerProxy.cancelKeyTimersOf(this);
                     mInHorizontalSwipe = true;
-                } else if (oneShotSwipe(sv.mSpaceSwipeHorizontal)) return;
-                if (sListener.onHorizontalSpaceSwipe(stepsX)) {
-                    mStartX += stepsX * sPointerStep;
+                    mStartY = y;
+                    // Capture stable vertical baseline for up/down detection during horizontal swipe.
+                    // mStartY will be continuously updated (anti-wobble), but mHorizontalSwipeBaseY stays
+                    // anchored so that deliberate vertical displacement can be measured accurately.
+                    mHorizontalSwipeBaseY = y;
+                    if (oneShotSwipe(sv.mSpaceSwipeHorizontal)) return;
+                    if (sListener.onHorizontalSpaceSwipe(stepsX)) {
+                        mStartX += stepsX * stepX;
+                    }
+                }
+            } else {
+                final boolean isVerticalCursorMove = (sv.mSpaceSwipeUp == KeyboardActionListener.SWIPE_MOVE_CURSOR
+                        || sv.mSpaceSwipeDown == KeyboardActionListener.SWIPE_MOVE_CURSOR);
+                final int stepY = isVerticalCursorMove ? sSpacePointerStepY : sPointerStep;
+                final int stepsY = dY / stepY;
+                if (stepsY != 0) {
+                    sTimerProxy.cancelKeyTimersOf(this);
+                    mInVerticalSwipe = true;
+                    mStartX = x;
+                    // Always call the listener on the first step — for one-shot swipes (numpad, hide keyboard)
+                    // this IS the trigger. The continuation block's oneShotSwipe guard prevents re-firing.
+                    if (stepsY < 0) {
+                        if (sListener.onSpaceSwipeUp(stepsY)) {
+                            mStartY += stepsY * stepY;
+                        }
+                    } else {
+                        if (sListener.onSpaceSwipeDown(stepsY)) {
+                            mStartY += stepsY * stepY;
+                        }
+                    }
                 }
             }
         } else if (code == KeyCode.DELETE) {
@@ -1207,6 +1288,15 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         setReleasedKeyGraphics(mCurrentKey, true);
         resetKeySelectionByDraggingFinger();
         dismissPopupKeysPanel();
+        if (mKeySwipeAllowed) {
+            mKeySwipeAllowed = false;
+            sInKeySwipe = false;
+            if (mInHorizontalSwipe || mInVerticalSwipe) {
+                mInHorizontalSwipe = false;
+                mInVerticalSwipe = false;
+                sListener.onEndSpaceSwipe();
+            }
+        }
     }
 
     private boolean isMajorEnoughMoveToBeOnNewKey(final int x, final int y, final long eventTime,
