@@ -334,10 +334,17 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         if (steps == 0) return false
         if (!isMultiLine()) return true
 
-        // Dispatch real DPAD_UP / DPAD_DOWN key events to the editor.
-        // This delegates vertical movement entirely to the editor's own layout engine,
-        // which correctly handles both hard newlines and soft-wrapped lines while
-        // preserving the horizontal column position — identical to Samsung Keyboard / Gboard.
+        // Guard: don't send DPAD_UP on the first line — many apps would move focus to the
+        // previous UI element (URL bar, buttons, etc.) instead of staying in the text field.
+        // Similarly, don't send DPAD_DOWN on the last line.
+        if (steps < 0) {
+            val textBefore = connection.getTextBeforeCursor(500, 0)
+            if (textBefore != null && !textBefore.contains('\n')) return true // first line, stay put
+        } else {
+            val textAfter = connection.getTextAfterCursor(500, 0)
+            if (textAfter != null && !textAfter.contains('\n')) return true // last line, stay put
+        }
+
         val absSteps = kotlin.math.abs(steps)
         val keyCode = if (steps < 0) KeyEvent.KEYCODE_DPAD_UP else KeyEvent.KEYCODE_DPAD_DOWN
 
@@ -362,6 +369,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         if (steps < 0) gestureMoveBackHaptics() else gestureMoveForwardHaptics()
         return true
     }
+
 
     private fun onMoveCursorHorizontally(rawSteps: Int): Boolean {
         if (rawSteps == 0) return false

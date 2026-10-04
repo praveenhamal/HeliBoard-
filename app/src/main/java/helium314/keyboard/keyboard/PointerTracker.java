@@ -149,8 +149,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     private long mStartTime;
     private boolean mInHorizontalSwipe = false;
     private boolean mInVerticalSwipe = false;
-    // Baseline Y at the moment a horizontal swipe starts; used to measure accumulated vertical
-    // drift so that mStartY = y (anti-wobble tracking) does not prevent up/down detection.
+    // Stable Y baseline captured when a horizontal dpad swipe starts.
+    // mStartY is continuously reset (anti-wobble) but this stays anchored
+    // so deliberate vertical displacement can be measured accurately.
     private int mHorizontalSwipeBaseY;
 
     private static final int EDGE_SCROLL_INITIAL_DELAY = 200; // ms
@@ -1042,32 +1043,31 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                     if (sDrawingProxy != null) {
                         sDrawingProxy.setCursorMovementDimmed(true);
                     }
-                    // Measure vertical drift from the stable baseline captured at horizontal-swipe start.
-                    // Using mHorizontalSwipeBaseY instead of mStartY ensures that the continuous
-                    // anti-wobble reset (mStartY = y) below does NOT prevent up/down detection.
+                    // Measure total vertical displacement from the stable baseline captured
+                    // at swipe start. mStartY is continuously reset (anti-wobble) which would
+                    // prevent up/down detection — mHorizontalSwipeBaseY stays anchored instead.
                     final int dYFromBase = y - mHorizontalSwipeBaseY;
                     final int absDYFromBase = abs(dYFromBase);
-                    // Check if user is intentionally swiping vertically across text lines (iOS trackpad style)
-                    // Must exceed a full line threshold and have vertical dominance over horizontal motion
-                    if (absDYFromBase >= sSpacePointerStepY && absDYFromBase > (int)(absDX * 1.2f)) {
+                    // Vertical line movement: requires strong vertical dominance AND a full
+                    // step threshold so tiny natural thumb arcs never trigger it.
+                    if (absDYFromBase >= sSpacePointerStepY && absDYFromBase > absDX * 2) {
                         stopEdgeScroll();
                         final int stepsY = dYFromBase / sSpacePointerStepY;
                         if (stepsY != 0) {
                             sListener.onVerticalSpaceSwipe(stepsY);
                             mHorizontalSwipeBaseY += stepsY * sSpacePointerStepY;
-                            mStartY = y; // keep anti-wobble tracking current
-                            mStartX = x; // Reset horizontal origin so horizontal drift doesn't accumulate
+                            mStartY = y;
+                            mStartX = x;
                         }
                     } else {
-                        // User is moving horizontally: process horizontal steps
+                        // Horizontal cursor movement
                         final int stepsX = dX / sSpacePointerStepX;
                         if (stepsX != 0) {
                             if (sListener.onHorizontalSpaceSwipe(stepsX)) {
                                 mStartX += stepsX * sSpacePointerStepX;
                             }
                         }
-                        // Continuous tracking of vertical position prevents small natural thumb arcs/wobbles
-                        // from slowly accumulating into an unwanted vertical jump while swiping horizontally!
+                        // Absorb minor vertical drift so thumb arcs don't accumulate.
                         mStartY = y;
 
                         final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyWidth * 0.6f) : sSpacePointerStepX;
@@ -1099,9 +1099,6 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                     sTimerProxy.cancelKeyTimersOf(this);
                     mInHorizontalSwipe = true;
                     mStartY = y;
-                    // Capture stable vertical baseline for up/down detection during horizontal swipe.
-                    // mStartY will be continuously updated (anti-wobble), but mHorizontalSwipeBaseY stays
-                    // anchored so that deliberate vertical displacement can be measured accurately.
                     mHorizontalSwipeBaseY = y;
                     if (oneShotSwipe(sv.mSpaceSwipeHorizontal)) return;
                     if (isCursorMove && sDrawingProxy != null) {
