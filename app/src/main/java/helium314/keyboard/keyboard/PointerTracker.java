@@ -156,8 +156,10 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
     private static final int EDGE_SCROLL_INITIAL_DELAY = 200; // ms
     private static final int EDGE_SCROLL_REPEAT_INTERVAL = 65; // ms
+    private static final int VERTICAL_EDGE_SCROLL_REPEAT_INTERVAL = 110; // ms
     private static final Handler sEdgeScrollHandler = new Handler(Looper.getMainLooper());
     private int mEdgeScrollDirection = 0; // -1 for left, 1 for right, 0 for inactive
+    private int mVerticalEdgeScrollDirection = 0; // -1 for up, 1 for down, 0 for inactive
 
     private final Runnable mEdgeScrollRunnable = new Runnable() {
         @Override
@@ -185,6 +187,36 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         }
     };
 
+    private final Runnable mVerticalEdgeScrollRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if ((!mInHorizontalSwipe && !mInVerticalSwipe) || mVerticalEdgeScrollDirection == 0) {
+                mVerticalEdgeScrollDirection = 0;
+                return;
+            }
+            final SettingsValues sv = Settings.getValues();
+            final boolean isVerticalCursorMove = (sv.mSpaceSwipeHorizontal == KeyboardActionListener.SWIPE_MOVE_CURSOR
+                    || sv.mSpaceSwipeUp == KeyboardActionListener.SWIPE_MOVE_CURSOR
+                    || sv.mSpaceSwipeDown == KeyboardActionListener.SWIPE_MOVE_CURSOR);
+            if (!isVerticalCursorMove) {
+                mVerticalEdgeScrollDirection = 0;
+                return;
+            }
+            final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyHeight * 0.6f) : sSpacePointerStepY;
+            final boolean atTop = mLastY <= edgeThreshold;
+            final boolean atBottom = mKeyboard != null && mLastY >= mKeyboard.mOccupiedHeight - edgeThreshold;
+            if ((mVerticalEdgeScrollDirection < 0 && !atTop) || (mVerticalEdgeScrollDirection > 0 && !atBottom)) {
+                mVerticalEdgeScrollDirection = 0;
+                return;
+            }
+
+            sListener.onVerticalSpaceSwipe(mVerticalEdgeScrollDirection);
+            mHorizontalSwipeBaseY = mLastY;
+            mStartY = mLastY;
+            sEdgeScrollHandler.postDelayed(this, VERTICAL_EDGE_SCROLL_REPEAT_INTERVAL);
+        }
+    };
+
     private void startEdgeScroll(final int direction) {
         if (mEdgeScrollDirection == direction) {
             return;
@@ -194,9 +226,23 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         sEdgeScrollHandler.postDelayed(mEdgeScrollRunnable, EDGE_SCROLL_INITIAL_DELAY);
     }
 
+    private void startVerticalEdgeScroll(final int direction) {
+        if (mVerticalEdgeScrollDirection == direction) {
+            return;
+        }
+        stopVerticalEdgeScroll();
+        mVerticalEdgeScrollDirection = direction;
+        sEdgeScrollHandler.postDelayed(mVerticalEdgeScrollRunnable, EDGE_SCROLL_INITIAL_DELAY);
+    }
+
     private void stopEdgeScroll() {
         mEdgeScrollDirection = 0;
         sEdgeScrollHandler.removeCallbacks(mEdgeScrollRunnable);
+    }
+
+    private void stopVerticalEdgeScroll() {
+        mVerticalEdgeScrollDirection = 0;
+        sEdgeScrollHandler.removeCallbacks(mVerticalEdgeScrollRunnable);
     }
 
     // true if keyboard layout has been changed.
@@ -284,6 +330,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         }
         for (int i = 0; i < sTrackers.size(); ++i) {
             sTrackers.get(i).stopEdgeScroll();
+            sTrackers.get(i).stopVerticalEdgeScroll();
         }
         sPointerTrackerQueue.cancelAllPointerTrackers();
     }
@@ -1032,6 +1079,18 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                         }
                     }
                 }
+                if (isVerticalCursorMove) {
+                    final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyHeight * 0.6f) : sSpacePointerStepY;
+                    final boolean atTopEdge = y <= edgeThreshold;
+                    final boolean atBottomEdge = mKeyboard != null && y >= mKeyboard.mOccupiedHeight - edgeThreshold;
+                    if (atTopEdge) {
+                        startVerticalEdgeScroll(-1);
+                    } else if (atBottomEdge) {
+                        startVerticalEdgeScroll(1);
+                    } else {
+                        stopVerticalEdgeScroll();
+                    }
+                }
                 return;
             }
 
@@ -1081,6 +1140,17 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                             stopEdgeScroll();
                         }
                     }
+
+                    final int edgeThresholdY = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyHeight * 0.6f) : sSpacePointerStepY;
+                    final boolean atTopEdge = y <= edgeThresholdY;
+                    final boolean atBottomEdge = mKeyboard != null && y >= mKeyboard.mOccupiedHeight - edgeThresholdY;
+                    if (atTopEdge) {
+                        startVerticalEdgeScroll(-1);
+                    } else if (atBottomEdge) {
+                        startVerticalEdgeScroll(1);
+                    } else {
+                        stopVerticalEdgeScroll();
+                    }
                 } else {
                     final int stepsX = dX / stepX;
                     if (stepsX != 0) {
@@ -1116,10 +1186,19 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                         } else if (atRightEdge) {
                             startEdgeScroll(1);
                         }
+                        final int edgeThresholdY = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyHeight * 0.6f) : sSpacePointerStepY;
+                        final boolean atTopEdge = y <= edgeThresholdY;
+                        final boolean atBottomEdge = mKeyboard != null && y >= mKeyboard.mOccupiedHeight - edgeThresholdY;
+                        if (atTopEdge) {
+                            startVerticalEdgeScroll(-1);
+                        } else if (atBottomEdge) {
+                            startVerticalEdgeScroll(1);
+                        }
                     }
                 }
             } else {
                 stopEdgeScroll();
+                stopVerticalEdgeScroll();
                 final boolean isVerticalCursorMove = (sv.mSpaceSwipeUp == KeyboardActionListener.SWIPE_MOVE_CURSOR
                         || sv.mSpaceSwipeDown == KeyboardActionListener.SWIPE_MOVE_CURSOR);
                 final int stepY = isVerticalCursorMove ? sSpacePointerStepY : sPointerStep;
@@ -1142,10 +1221,21 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                             mStartY += stepsY * stepY;
                         }
                     }
+                    if (isVerticalCursorMove) {
+                        final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyHeight * 0.6f) : sSpacePointerStepY;
+                        final boolean atTopEdge = y <= edgeThreshold;
+                        final boolean atBottomEdge = mKeyboard != null && y >= mKeyboard.mOccupiedHeight - edgeThreshold;
+                        if (atTopEdge) {
+                            startVerticalEdgeScroll(-1);
+                        } else if (atBottomEdge) {
+                            startVerticalEdgeScroll(1);
+                        }
+                    }
                 }
             }
         } else if (code == KeyCode.DELETE) {
             stopEdgeScroll();
+            stopVerticalEdgeScroll();
             // Delete slider
             int steps = (x - mStartX) / sPointerStep;
             if (steps != 0) {
@@ -1233,6 +1323,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
     private void onUpEventInternal(final int x, final int y, final long eventTime) {
         stopEdgeScroll();
+        stopVerticalEdgeScroll();
         if (sDrawingProxy != null) {
             sDrawingProxy.setCursorMovementDimmed(false);
         }
