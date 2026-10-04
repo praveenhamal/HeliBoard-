@@ -284,6 +284,7 @@ public class KeyboardView extends View {
             }
             if (mIsCursorMovementEdgeGlowActive) {
                 onDrawEdgeGlow(canvas);
+                postInvalidateOnAnimation();
             }
             return;
         }
@@ -303,6 +304,7 @@ public class KeyboardView extends View {
         canvas.drawBitmap(mOffscreenBuffer, 0.0f, 0.0f, null);
         if (mIsCursorMovementEdgeGlowActive) {
             onDrawEdgeGlow(canvas);
+            postInvalidateOnAnimation();
         }
     }
 
@@ -325,103 +327,197 @@ public class KeyboardView extends View {
         final float touchX = Math.max(0, Math.min(width, mEdgeGlowX));
         final float touchY = Math.max(0, Math.min(height, mEdgeGlowY));
 
-        // Subtle pulsing effect to indicate active continuous cursor mode
+        // Pulsing breathing animation to indicate active continuous cursor mode
         final long time = SystemClock.uptimeMillis() % 800;
-        final float pulse = 0.85f + 0.15f * (float) Math.sin((time / 800.0) * 2 * Math.PI);
+        final float pulse = 0.82f + 0.18f * (float) Math.sin((time / 800.0) * 2 * Math.PI);
 
-        final float pillBreadth = 4.0f * density;
-        final float pillSpan = 48.0f * density;
+        final float pillBreadth = 5.0f * density;
+        final float pillSpan = 56.0f * density;
         final float cornerRadius = pillBreadth / 2.0f;
-        final float glowSpread = 40.0f * density;
+
+        // Spread prominently towards the center of the keyboard so it is not hidden by the finger
+        final float glowSpreadX = Math.min(width * 0.50f, 150.0f * density);
+        final float glowSpreadY = Math.min(height * 0.55f, 115.0f * density);
 
         mEdgeGlowPaint.setStyle(Paint.Style.FILL);
         mEdgeGlowPaint.setShader(null);
 
         // 1. Edge glow & indicator pill along active borders
-        if (mEdgeGlowDirectionX < 0) { // Left edge
-            final Shader leftGlow = new LinearGradient(
-                    0, touchY, glowSpread, touchY,
-                    applyAlpha(accentColor, (int)(110 * pulse)),
-                    applyAlpha(accentColor, 0),
+        if (mEdgeGlowDirectionX < 0) { // Left edge -> spread rightwards towards center
+            // Ambient linear wash along the active border
+            final float linearSpread = glowSpreadX * 0.75f;
+            final Shader leftLinearWash = new LinearGradient(
+                    0, 0, linearSpread, 0,
+                    new int[] {
+                            applyAlpha(accentColor, (int)(140 * pulse)),
+                            applyAlpha(accentColor, (int)(75 * pulse)),
+                            applyAlpha(accentColor, 0)
+                    },
+                    new float[] { 0f, 0.35f, 1f },
                     Shader.TileMode.CLAMP);
-            mEdgeGlowPaint.setShader(leftGlow);
-            canvas.drawRect(0, Math.max(0, touchY - glowSpread * 1.5f),
-                    glowSpread, Math.min(height, touchY + glowSpread * 1.5f), mEdgeGlowPaint);
+            mEdgeGlowPaint.setShader(leftLinearWash);
+            canvas.drawRect(0, 0, linearSpread, height, mEdgeGlowPaint);
 
+            // Prominent radial bloom radiating from the touch edge towards keyboard center
+            final float radialRadius = glowSpreadX * 1.15f;
+            final Shader leftRadialBloom = new RadialGradient(
+                    0, touchY, radialRadius,
+                    new int[] {
+                            applyAlpha(accentColor, (int)(230 * pulse)),
+                            applyAlpha(accentColor, (int)(160 * pulse)),
+                            applyAlpha(accentColor, (int)(75 * pulse)),
+                            applyAlpha(accentColor, 0)
+                    },
+                    new float[] { 0f, 0.28f, 0.62f, 1f },
+                    Shader.TileMode.CLAMP);
+            mEdgeGlowPaint.setShader(leftRadialBloom);
+            canvas.drawRect(0, Math.max(0, touchY - radialRadius),
+                    radialRadius, Math.min(height, touchY + radialRadius), mEdgeGlowPaint);
+
+            // Edge indicator pill
             mEdgeGlowPaint.setShader(null);
-            mEdgeGlowPaint.setColor(applyAlpha(accentColor, (int)(220 * pulse)));
+            mEdgeGlowPaint.setColor(applyAlpha(accentColor, (int)(245 * pulse)));
             final RectF leftPill = new RectF(0, Math.max(0, touchY - pillSpan),
                     pillBreadth, Math.min(height, touchY + pillSpan));
             canvas.drawRoundRect(leftPill, cornerRadius, cornerRadius, mEdgeGlowPaint);
-        } else if (mEdgeGlowDirectionX > 0) { // Right edge
-            final Shader rightGlow = new LinearGradient(
-                    width, touchY, width - glowSpread, touchY,
-                    applyAlpha(accentColor, (int)(110 * pulse)),
-                    applyAlpha(accentColor, 0),
-                    Shader.TileMode.CLAMP);
-            mEdgeGlowPaint.setShader(rightGlow);
-            canvas.drawRect(Math.max(0, width - glowSpread), Math.max(0, touchY - glowSpread * 1.5f),
-                    width, Math.min(height, touchY + glowSpread * 1.5f), mEdgeGlowPaint);
 
+        } else if (mEdgeGlowDirectionX > 0) { // Right edge -> spread leftwards towards center
+            // Ambient linear wash along the active border
+            final float linearSpread = glowSpreadX * 0.75f;
+            final Shader rightLinearWash = new LinearGradient(
+                    width, 0, width - linearSpread, 0,
+                    new int[] {
+                            applyAlpha(accentColor, (int)(140 * pulse)),
+                            applyAlpha(accentColor, (int)(75 * pulse)),
+                            applyAlpha(accentColor, 0)
+                    },
+                    new float[] { 0f, 0.35f, 1f },
+                    Shader.TileMode.CLAMP);
+            mEdgeGlowPaint.setShader(rightLinearWash);
+            canvas.drawRect(width - linearSpread, 0, width, height, mEdgeGlowPaint);
+
+            // Prominent radial bloom radiating from the touch edge towards keyboard center
+            final float radialRadius = glowSpreadX * 1.15f;
+            final Shader rightRadialBloom = new RadialGradient(
+                    width, touchY, radialRadius,
+                    new int[] {
+                            applyAlpha(accentColor, (int)(230 * pulse)),
+                            applyAlpha(accentColor, (int)(160 * pulse)),
+                            applyAlpha(accentColor, (int)(75 * pulse)),
+                            applyAlpha(accentColor, 0)
+                    },
+                    new float[] { 0f, 0.28f, 0.62f, 1f },
+                    Shader.TileMode.CLAMP);
+            mEdgeGlowPaint.setShader(rightRadialBloom);
+            canvas.drawRect(Math.max(0, width - radialRadius), Math.max(0, touchY - radialRadius),
+                    width, Math.min(height, touchY + radialRadius), mEdgeGlowPaint);
+
+            // Edge indicator pill
             mEdgeGlowPaint.setShader(null);
-            mEdgeGlowPaint.setColor(applyAlpha(accentColor, (int)(220 * pulse)));
+            mEdgeGlowPaint.setColor(applyAlpha(accentColor, (int)(245 * pulse)));
             final RectF rightPill = new RectF(width - pillBreadth, Math.max(0, touchY - pillSpan),
                     width, Math.min(height, touchY + pillSpan));
             canvas.drawRoundRect(rightPill, cornerRadius, cornerRadius, mEdgeGlowPaint);
         }
 
-        if (mEdgeGlowDirectionY < 0) { // Top edge
-            final Shader topGlow = new LinearGradient(
-                    touchX, 0, touchX, glowSpread,
-                    applyAlpha(accentColor, (int)(110 * pulse)),
-                    applyAlpha(accentColor, 0),
+        if (mEdgeGlowDirectionY < 0) { // Top edge -> spread downwards towards center
+            // Ambient linear wash along the active border
+            final float linearSpread = glowSpreadY * 0.75f;
+            final Shader topLinearWash = new LinearGradient(
+                    0, 0, 0, linearSpread,
+                    new int[] {
+                            applyAlpha(accentColor, (int)(140 * pulse)),
+                            applyAlpha(accentColor, (int)(75 * pulse)),
+                            applyAlpha(accentColor, 0)
+                    },
+                    new float[] { 0f, 0.35f, 1f },
                     Shader.TileMode.CLAMP);
-            mEdgeGlowPaint.setShader(topGlow);
-            canvas.drawRect(Math.max(0, touchX - glowSpread * 1.5f), 0,
-                    Math.min(width, touchX + glowSpread * 1.5f), glowSpread, mEdgeGlowPaint);
+            mEdgeGlowPaint.setShader(topLinearWash);
+            canvas.drawRect(0, 0, width, linearSpread, mEdgeGlowPaint);
 
+            // Prominent radial bloom radiating from the touch edge towards keyboard center
+            final float radialRadius = glowSpreadY * 1.15f;
+            final Shader topRadialBloom = new RadialGradient(
+                    touchX, 0, radialRadius,
+                    new int[] {
+                            applyAlpha(accentColor, (int)(230 * pulse)),
+                            applyAlpha(accentColor, (int)(160 * pulse)),
+                            applyAlpha(accentColor, (int)(75 * pulse)),
+                            applyAlpha(accentColor, 0)
+                    },
+                    new float[] { 0f, 0.28f, 0.62f, 1f },
+                    Shader.TileMode.CLAMP);
+            mEdgeGlowPaint.setShader(topRadialBloom);
+            canvas.drawRect(Math.max(0, touchX - radialRadius), 0,
+                    Math.min(width, touchX + radialRadius), radialRadius, mEdgeGlowPaint);
+
+            // Edge indicator pill
             mEdgeGlowPaint.setShader(null);
-            mEdgeGlowPaint.setColor(applyAlpha(accentColor, (int)(220 * pulse)));
+            mEdgeGlowPaint.setColor(applyAlpha(accentColor, (int)(245 * pulse)));
             final RectF topPill = new RectF(Math.max(0, touchX - pillSpan), 0,
                     Math.min(width, touchX + pillSpan), pillBreadth);
             canvas.drawRoundRect(topPill, cornerRadius, cornerRadius, mEdgeGlowPaint);
-        } else if (mEdgeGlowDirectionY > 0) { // Bottom edge
-            final Shader bottomGlow = new LinearGradient(
-                    touchX, height, touchX, height - glowSpread,
-                    applyAlpha(accentColor, (int)(110 * pulse)),
-                    applyAlpha(accentColor, 0),
-                    Shader.TileMode.CLAMP);
-            mEdgeGlowPaint.setShader(bottomGlow);
-            canvas.drawRect(Math.max(0, touchX - glowSpread * 1.5f), Math.max(0, height - glowSpread),
-                    Math.min(width, touchX + glowSpread * 1.5f), height, mEdgeGlowPaint);
 
+        } else if (mEdgeGlowDirectionY > 0) { // Bottom edge -> spread upwards towards center
+            // Ambient linear wash along the active border
+            final float linearSpread = glowSpreadY * 0.75f;
+            final Shader bottomLinearWash = new LinearGradient(
+                    0, height, 0, height - linearSpread,
+                    new int[] {
+                            applyAlpha(accentColor, (int)(140 * pulse)),
+                            applyAlpha(accentColor, (int)(75 * pulse)),
+                            applyAlpha(accentColor, 0)
+                    },
+                    new float[] { 0f, 0.35f, 1f },
+                    Shader.TileMode.CLAMP);
+            mEdgeGlowPaint.setShader(bottomLinearWash);
+            canvas.drawRect(0, height - linearSpread, width, height, mEdgeGlowPaint);
+
+            // Prominent radial bloom radiating from the touch edge towards keyboard center
+            final float radialRadius = glowSpreadY * 1.15f;
+            final Shader bottomRadialBloom = new RadialGradient(
+                    touchX, height, radialRadius,
+                    new int[] {
+                            applyAlpha(accentColor, (int)(230 * pulse)),
+                            applyAlpha(accentColor, (int)(160 * pulse)),
+                            applyAlpha(accentColor, (int)(75 * pulse)),
+                            applyAlpha(accentColor, 0)
+                    },
+                    new float[] { 0f, 0.28f, 0.62f, 1f },
+                    Shader.TileMode.CLAMP);
+            mEdgeGlowPaint.setShader(bottomRadialBloom);
+            canvas.drawRect(Math.max(0, touchX - radialRadius), Math.max(0, height - radialRadius),
+                    Math.min(width, touchX + radialRadius), height, mEdgeGlowPaint);
+
+            // Edge indicator pill
             mEdgeGlowPaint.setShader(null);
-            mEdgeGlowPaint.setColor(applyAlpha(accentColor, (int)(220 * pulse)));
+            mEdgeGlowPaint.setColor(applyAlpha(accentColor, (int)(245 * pulse)));
             final RectF bottomPill = new RectF(Math.max(0, touchX - pillSpan), height - pillBreadth,
                     Math.min(width, touchX + pillSpan), height);
             canvas.drawRoundRect(bottomPill, cornerRadius, cornerRadius, mEdgeGlowPaint);
         }
 
-        // 2. Glowing touch point indicator
-        final float haloRadius = 36.0f * density;
+        // 2. Glowing touch point indicator (expanded radius so it blooms around the finger)
+        final float haloRadius = Math.min(Math.min(width, height) * 0.35f, 72.0f * density);
         final Shader pointGlow = new RadialGradient(
                 touchX, touchY, haloRadius,
                 new int[] {
-                        applyAlpha(accentColor, (int)(140 * pulse)),
-                        applyAlpha(accentColor, (int)(50 * pulse)),
+                        applyAlpha(accentColor, (int)(190 * pulse)),
+                        applyAlpha(accentColor, (int)(125 * pulse)),
+                        applyAlpha(accentColor, (int)(45 * pulse)),
                         applyAlpha(accentColor, 0)
                 },
-                new float[] { 0f, 0.45f, 1f },
+                new float[] { 0f, 0.30f, 0.65f, 1f },
                 Shader.TileMode.CLAMP);
         mEdgeGlowPaint.setShader(pointGlow);
         canvas.drawCircle(touchX, touchY, haloRadius, mEdgeGlowPaint);
 
         // Core bright glowing center point
         mEdgeGlowPaint.setShader(null);
-        mEdgeGlowPaint.setColor(applyAlpha(Color.WHITE, (int)(190 * pulse)));
-        canvas.drawCircle(touchX, touchY, 4.0f * density, mEdgeGlowPaint);
-        mEdgeGlowPaint.setColor(applyAlpha(accentColor, (int)(160 * pulse)));
-        canvas.drawCircle(touchX, touchY, 7.0f * density, mEdgeGlowPaint);
+        mEdgeGlowPaint.setColor(applyAlpha(Color.WHITE, (int)(220 * pulse)));
+        canvas.drawCircle(touchX, touchY, 5.0f * density, mEdgeGlowPaint);
+        mEdgeGlowPaint.setColor(applyAlpha(accentColor, (int)(180 * pulse)));
+        canvas.drawCircle(touchX, touchY, 9.0f * density, mEdgeGlowPaint);
     }
 
     private static int applyAlpha(final int color, final int alpha) {
