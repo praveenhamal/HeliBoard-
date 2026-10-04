@@ -70,4 +70,13 @@ public interface DrawingProxy {
      * Dim or restore the keyboard layout during cursor movement mode.
      */
     void setCursorMovementDimmed(boolean dimmed);
+
+    /**
+     * Show or clear edge glow during cursor movement continuous scroll mode.
+     * @param edgeDirectionX -1 for left edge, 1 for right edge, 0 for none.
+     * @param edgeDirectionY -1 for top edge, 1 for bottom edge, 0 for none.
+     * @param touchX current touch x coordinate.
+     * @param touchY current touch y coordinate.
+     */
+    void setCursorMovementEdgeGlow(int edgeDirectionX, int edgeDirectionY, int touchX, int touchY);
 }

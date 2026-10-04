@@ -183,6 +183,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
             sListener.onHorizontalSpaceSwipe(mEdgeScrollDirection);
             mStartX = mLastX;
+            updateEdgeGlow();
             sEdgeScrollHandler.postDelayed(this, EDGE_SCROLL_REPEAT_INTERVAL);
         }
     };
@@ -192,6 +193,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         public void run() {
             if ((!mInHorizontalSwipe && !mInVerticalSwipe) || mVerticalEdgeScrollDirection == 0) {
                 mVerticalEdgeScrollDirection = 0;
+                updateEdgeGlow();
                 return;
             }
             final SettingsValues sv = Settings.getValues();
@@ -200,6 +202,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                     || sv.mSpaceSwipeDown == KeyboardActionListener.SWIPE_MOVE_CURSOR);
             if (!isVerticalCursorMove) {
                 mVerticalEdgeScrollDirection = 0;
+                updateEdgeGlow();
                 return;
             }
             final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyHeight * 0.6f) : sSpacePointerStepY;
@@ -207,12 +210,14 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             final boolean atBottom = mKeyboard != null && mLastY >= mKeyboard.mOccupiedHeight - edgeThreshold;
             if ((mVerticalEdgeScrollDirection < 0 && !atTop) || (mVerticalEdgeScrollDirection > 0 && !atBottom)) {
                 mVerticalEdgeScrollDirection = 0;
+                updateEdgeGlow();
                 return;
             }
 
             sListener.onVerticalSpaceSwipe(mVerticalEdgeScrollDirection);
             mHorizontalSwipeBaseY = mLastY;
             mStartY = mLastY;
+            updateEdgeGlow();
             sEdgeScrollHandler.postDelayed(this, VERTICAL_EDGE_SCROLL_REPEAT_INTERVAL);
         }
     };
@@ -223,6 +228,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         }
         stopEdgeScroll();
         mEdgeScrollDirection = direction;
+        updateEdgeGlow();
         sEdgeScrollHandler.postDelayed(mEdgeScrollRunnable, EDGE_SCROLL_INITIAL_DELAY);
     }
 
@@ -232,17 +238,31 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         }
         stopVerticalEdgeScroll();
         mVerticalEdgeScrollDirection = direction;
+        updateEdgeGlow();
         sEdgeScrollHandler.postDelayed(mVerticalEdgeScrollRunnable, EDGE_SCROLL_INITIAL_DELAY);
     }
 
     private void stopEdgeScroll() {
-        mEdgeScrollDirection = 0;
-        sEdgeScrollHandler.removeCallbacks(mEdgeScrollRunnable);
+        if (mEdgeScrollDirection != 0) {
+            mEdgeScrollDirection = 0;
+            sEdgeScrollHandler.removeCallbacks(mEdgeScrollRunnable);
+            updateEdgeGlow();
+        }
     }
 
     private void stopVerticalEdgeScroll() {
-        mVerticalEdgeScrollDirection = 0;
-        sEdgeScrollHandler.removeCallbacks(mVerticalEdgeScrollRunnable);
+        if (mVerticalEdgeScrollDirection != 0) {
+            mVerticalEdgeScrollDirection = 0;
+            sEdgeScrollHandler.removeCallbacks(mVerticalEdgeScrollRunnable);
+            updateEdgeGlow();
+        }
+    }
+
+    private void updateEdgeGlow() {
+        if (sDrawingProxy != null) {
+            sDrawingProxy.setCursorMovementEdgeGlow(
+                    mEdgeScrollDirection, mVerticalEdgeScrollDirection, mLastX, mLastY);
+        }
     }
 
     // true if keyboard layout has been changed.
@@ -327,6 +347,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     public static void cancelAllPointerTrackers() {
         if (sDrawingProxy != null) {
             sDrawingProxy.setCursorMovementDimmed(false);
+            sDrawingProxy.setCursorMovementEdgeGlow(0, 0, 0, 0);
         }
         for (int i = 0; i < sTrackers.size(); ++i) {
             sTrackers.get(i).stopEdgeScroll();
@@ -1038,6 +1059,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     private void onKeySwipe(final int code, final int x, final int y, final long eventTime) {
         mLastX = x;
         mLastY = y;
+        if (mEdgeScrollDirection != 0 || mVerticalEdgeScrollDirection != 0) {
+            updateEdgeGlow();
+        }
         final SettingsValues sv = Settings.getValues();
         final int fastTypingTimeout = 2 * sv.mKeyLongpressTimeout / 3;
         // we don't want keyswipes to start immediately if the user is fast-typing,
@@ -1326,6 +1350,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         stopVerticalEdgeScroll();
         if (sDrawingProxy != null) {
             sDrawingProxy.setCursorMovementDimmed(false);
+            sDrawingProxy.setCursorMovementEdgeGlow(0, 0, 0, 0);
         }
         sTimerProxy.cancelKeyTimersOf(this);
         final boolean isInDraggingFinger = mIsInDraggingFinger;
