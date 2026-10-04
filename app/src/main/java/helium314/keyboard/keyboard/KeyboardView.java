@@ -96,9 +96,12 @@ public class KeyboardView extends View {
     private final Canvas mOffscreenCanvas = new Canvas();
     @NonNull
     private final Paint mPaint = new Paint();
-    private final Paint.FontMetrics mFontMetrics = new Paint.FontMetrics();
     protected final Typeface mTypeface;
     protected final Typeface mEmojiTypeface;
+
+    protected boolean mIsCursorMovementDimmed = false;
+    protected final Paint mCursorMovementDimPaint = new Paint();
+    private final Paint.FontMetrics mFontMetrics = new Paint.FontMetrics();
 
     public KeyboardView(final Context context, final AttributeSet attrs) {
         this(context, attrs, R.attr.keyboardViewStyle);
@@ -150,12 +153,23 @@ public class KeyboardView extends View {
         mPaint.setAntiAlias(true);
         mTypeface = Settings.getInstance().getCustomTypeface();
         mEmojiTypeface = Settings.getInstance().getCustomEmojiTypeface();
+        mCursorMovementDimPaint.setColor(Color.BLACK);
+        mCursorMovementDimPaint.setAlpha(110);
         setFitsSystemWindows(true);
     }
 
     @Nullable
     public KeyVisualAttributes getKeyVisualAttribute() {
         return mKeyVisualAttributes;
+    }
+
+    public void setCursorMovementDimmed(final boolean dimmed) {
+        if (mIsCursorMovementDimmed == dimmed) {
+            return;
+        }
+        mIsCursorMovementDimmed = dimmed;
+        mInvalidateAllKeys = true;
+        invalidate();
     }
 
     private static void blendAlpha(@NonNull final Paint paint, final int alpha) {
@@ -241,6 +255,9 @@ public class KeyboardView extends View {
         super.onDraw(canvas);
         if (canvas.isHardwareAccelerated()) {
             onDrawKeyboard(canvas);
+            if (mIsCursorMovementDimmed) {
+                canvas.drawRect(0, 0, getWidth(), getHeight(), mCursorMovementDimPaint);
+            }
             return;
         }
 
@@ -252,6 +269,9 @@ public class KeyboardView extends View {
                 mOffscreenCanvas.setBitmap(mOffscreenBuffer);
             }
             onDrawKeyboard(mOffscreenCanvas);
+            if (mIsCursorMovementDimmed) {
+                mOffscreenCanvas.drawRect(0, 0, getWidth(), getHeight(), mCursorMovementDimPaint);
+            }
         }
         canvas.drawBitmap(mOffscreenBuffer, 0.0f, 0.0f, null);
     }
@@ -338,7 +358,7 @@ public class KeyboardView extends View {
         final KeyVisualAttributes attr = key.getVisualAttributes();
         // don't use the raw key height, linear font scaling with height is too extreme
         final KeyDrawParams params = mKeyDrawParams.mayCloneAndUpdateParams((int) (key.getHeight() * mKeyScaleForText), attr);
-        params.mAnimAlpha = Constants.Color.ALPHA_OPAQUE;
+        params.mAnimAlpha = mIsCursorMovementDimmed ? 60 : Constants.Color.ALPHA_OPAQUE;
 
         if (!key.isSpacer()) {
             final Drawable background = key.selectBackgroundDrawable(

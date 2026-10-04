@@ -278,6 +278,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     }
 
     public static void cancelAllPointerTrackers() {
+        if (sDrawingProxy != null) {
+            sDrawingProxy.setCursorMovementDimmed(false);
+        }
         for (int i = 0; i < sTrackers.size(); ++i) {
             sTrackers.get(i).stopEdgeScroll();
         }
@@ -745,6 +748,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
     private void dismissPopupKeysPanel() {
         stopEdgeScroll();
+        if (sDrawingProxy != null) {
+            sDrawingProxy.setCursorMovementDimmed(false);
+        }
         if (isShowingPopupKeysPanel()) {
             mPopupKeysPanel.dismissPopupKeysPanel();
             mPopupKeysPanel = null;
@@ -1007,6 +1013,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 if (oneShotSwipe(swipeSetting)) return;
                 final boolean isVerticalCursorMove = (sv.mSpaceSwipeUp == KeyboardActionListener.SWIPE_MOVE_CURSOR
                         || sv.mSpaceSwipeDown == KeyboardActionListener.SWIPE_MOVE_CURSOR);
+                if (isVerticalCursorMove && sDrawingProxy != null) {
+                    sDrawingProxy.setCursorMovementDimmed(true);
+                }
                 final int stepY = isVerticalCursorMove ? sSpacePointerStepY : sPointerStep;
                 final int stepsY = dY / stepY;
                 if (stepsY != 0) {
@@ -1030,6 +1039,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 if (oneShotSwipe(sv.mSpaceSwipeHorizontal)) return;
 
                 if (isCursorMove) {
+                    if (sDrawingProxy != null) {
+                        sDrawingProxy.setCursorMovementDimmed(true);
+                    }
                     // Measure vertical drift from the stable baseline captured at horizontal-swipe start.
                     // Using mHorizontalSwipeBaseY instead of mStartY ensures that the continuous
                     // anti-wobble reset (mStartY = y) below does NOT prevent up/down detection.
@@ -1092,6 +1104,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                     // anchored so that deliberate vertical displacement can be measured accurately.
                     mHorizontalSwipeBaseY = y;
                     if (oneShotSwipe(sv.mSpaceSwipeHorizontal)) return;
+                    if (isCursorMove && sDrawingProxy != null) {
+                        sDrawingProxy.setCursorMovementDimmed(true);
+                    }
                     if (sListener.onHorizontalSpaceSwipe(stepsX)) {
                         mStartX += stepsX * stepX;
                     }
@@ -1116,6 +1131,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                     sTimerProxy.cancelKeyTimersOf(this);
                     mInVerticalSwipe = true;
                     mStartX = x;
+                    if (isVerticalCursorMove && sDrawingProxy != null) {
+                        sDrawingProxy.setCursorMovementDimmed(true);
+                    }
                     // Always call the listener on the first step — for one-shot swipes (numpad, hide keyboard)
                     // this IS the trigger. The continuation block's oneShotSwipe guard prevents re-firing.
                     if (stepsY < 0) {
@@ -1218,6 +1236,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
     private void onUpEventInternal(final int x, final int y, final long eventTime) {
         stopEdgeScroll();
+        if (sDrawingProxy != null) {
+            sDrawingProxy.setCursorMovementDimmed(false);
+        }
         sTimerProxy.cancelKeyTimersOf(this);
         final boolean isInDraggingFinger = mIsInDraggingFinger;
         final boolean isInSlidingKeyInput = mIsInSlidingKeyInput;
@@ -1285,6 +1306,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     @Override
     public void cancelTrackingForAction() {
         stopEdgeScroll();
+        if (sDrawingProxy != null) {
+            sDrawingProxy.setCursorMovementDimmed(false);
+        }
         if (isShowingPopupKeysPanel()) {
             return;
         }
@@ -1365,6 +1389,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
     private void onCancelEventInternal() {
         stopEdgeScroll();
+        if (sDrawingProxy != null) {
+            sDrawingProxy.setCursorMovementDimmed(false);
+        }
         sTimerProxy.cancelKeyTimersOf(this);
         setReleasedKeyGraphics(mCurrentKey, true);
         resetKeySelectionByDraggingFinger();

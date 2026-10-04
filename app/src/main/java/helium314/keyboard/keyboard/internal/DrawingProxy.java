@@ -65,4 +65,9 @@ public interface DrawingProxy {
      * Dismiss a gesture floating preview text without delay.
      */
     void dismissGestureFloatingPreviewTextWithoutDelay();
+
+    /**
+     * Dim or restore the keyboard layout during cursor movement mode.
+     */
+    void setCursorMovementDimmed(boolean dimmed);
 }

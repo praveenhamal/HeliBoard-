@@ -162,8 +162,11 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
 
         final int backgroundDimAlpha = mainKeyboardViewAttr.getInt(
                 R.styleable.MainKeyboardView_backgroundDimAlpha, 0);
+        final int dimAlpha = backgroundDimAlpha > 0 ? backgroundDimAlpha : 110;
         mBackgroundDimAlphaPaint.setColor(Color.BLACK);
-        mBackgroundDimAlphaPaint.setAlpha(backgroundDimAlpha);
+        mBackgroundDimAlphaPaint.setAlpha(dimAlpha);
+        mCursorMovementDimPaint.setColor(Color.BLACK);
+        mCursorMovementDimPaint.setAlpha(dimAlpha);
         mLanguageOnSpacebarTextRatio = mainKeyboardViewAttr.getFraction(
                 R.styleable.MainKeyboardView_languageOnSpacebarTextRatio, 1, 1, 1.0f)
                 * Settings.getValues().mFontSizeMultiplier;
@@ -702,7 +705,9 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     @Override
     protected void onDrawKeyTopVisuals(@NonNull final Key key, @NonNull final Canvas canvas,
             @NonNull final Paint paint, @NonNull final KeyDrawParams params) {
-        if (key.altCodeWhileTyping() && key.isEnabled()) {
+        if (mIsCursorMovementDimmed) {
+            params.mAnimAlpha = 60;
+        } else if (key.altCodeWhileTyping() && key.isEnabled()) {
             params.mAnimAlpha = Constants.Color.ALPHA_OPAQUE;
         }
         super.onDrawKeyTopVisuals(key, canvas, paint, params);
@@ -832,7 +837,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
             paint.clearShadowLayer();
         }
         paint.setColor(mLanguageOnSpacebarTextColor);
-        paint.setAlpha(mLanguageOnSpacebarAnimAlpha);
+        paint.setAlpha(mIsCursorMovementDimmed ? 60 : mLanguageOnSpacebarAnimAlpha);
         if (!fitsTextIntoWidth(width, spaceText, paint)) {
             final float textWidth = TypefaceUtils.getStringWidth(spaceText, paint);
             paint.setTextScaleX((width - mLanguageOnSpacebarHorizontalMargin * 2) / textWidth);

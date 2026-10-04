@@ -177,6 +177,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             selectionAnchor = -1
             selectionCursor = -1
         }
+        keyboardSwitcher.mainKeyboardView?.setCursorMovementDimmed(false)
     }
 
     override fun onFinishSlidingInput() =
@@ -243,6 +244,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             selectionAnchor = -1
             selectionCursor = -1
         }
+        keyboardSwitcher.mainKeyboardView?.setCursorMovementDimmed(false)
     }
 
     override fun toggleNumpad(withSliding: Boolean, forceReturnToAlpha: Boolean): Boolean {
