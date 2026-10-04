@@ -47,8 +47,11 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     private var initialSubtype: InputMethodSubtype? = null
     private var subtypeSwitchCount = 0
 
-    // shift selection mode state
-    private var isShiftSelectionMode = false
+    // Shift selection mode: active when enabled in settings AND either Shift is physically held
+    // or Caps Lock is currently active on the alphabet keyboard.
+    private val isShiftSelectionMode: Boolean
+        get() = Settings.getValues().mShiftSelectionMode && (isShiftHeld || keyboardSwitcher.keyboard?.mId?.isAlphabetShiftLocked == true)
+
     private var selectionAnchor = -1
     private var selectionCursor = -1
 
@@ -70,37 +73,19 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     override fun onLongPressKey(primaryCode: Int) {
         metaOnLongPressKey(primaryCode)
         performHapticFeedback(HapticEvent.KEY_LONG_PRESS)
+        if (primaryCode == KeyCode.SHIFT) {
+            isShiftHeld = false
+            selectionAnchor = -1
+            selectionCursor = -1
+        }
     }
 
     override fun onReleaseKey(primaryCode: Int, withSliding: Boolean) {
         metaOnReleaseKey(primaryCode)
         if (primaryCode == KeyCode.SHIFT) {
-            // Shift was released: if we were in held-shift selection mode, exit it cleanly
-            if (isShiftHeld) {
-                isShiftHeld = false
-                // If the held-shift activated selection mode, keep the selection but collapse
-                // the internal anchor/cursor so CAPS_LOCK mode can still work independently.
-                // Do NOT collapse the editor selection here — let the user keep the selection
-                // they just made by holding Shift and moving the cursor.
-                selectionAnchor = -1
-                selectionCursor = -1
-                // Only clear isShiftSelectionMode if it was not activated via CAPS_LOCK
-                if (keyboardSwitcher.keyboard?.mId?.isAlphabetShiftLocked != true) {
-                    isShiftSelectionMode = false
-                }
-            }
-        }
-        if (isShiftSelectionMode && (primaryCode == KeyCode.SHIFT || primaryCode == KeyCode.CAPS_LOCK)) {
-            val isShiftLocked = keyboardSwitcher.keyboard?.mId?.isAlphabetShiftLocked == true
-            if (!isShiftLocked || primaryCode == KeyCode.SHIFT) {
-                isShiftSelectionMode = false
-                if (connection.hasSelection()) {
-                    val endPos = connection.expectedSelectionEnd
-                    connection.setSelection(endPos, endPos)
-                }
-                selectionAnchor = -1
-                selectionCursor = -1
-            }
+            isShiftHeld = false
+            selectionAnchor = -1
+            selectionCursor = -1
         }
         keyboardSwitcher.onReleaseKey(primaryCode, withSliding, latinIME.currentAutoCapsState, latinIME.currentRecapitalizeState)
     }
@@ -146,20 +131,6 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             KeyCode.TOGGLE_AUTOCORRECT -> return settings.toggleAutoCorrect()
             KeyCode.TOGGLE_INCOGNITO_MODE -> return settings.toggleAlwaysIncognitoMode()
         }
-        if (primaryCode == KeyCode.CAPS_LOCK && Settings.getValues().mShiftSelectionMode) {
-            isShiftSelectionMode = !isShiftSelectionMode
-            if (isShiftSelectionMode) {
-                selectionAnchor = connection.expectedSelectionStart
-                selectionCursor = selectionAnchor
-            } else {
-                if (connection.hasSelection()) {
-                    val endPos = connection.expectedSelectionEnd
-                    connection.setSelection(endPos, endPos)
-                }
-                selectionAnchor = -1
-                selectionCursor = -1
-            }
-        }
         val isCursorMoveCode = primaryCode == KeyCode.ARROW_LEFT || primaryCode == KeyCode.ARROW_RIGHT ||
                 primaryCode == KeyCode.ARROW_UP || primaryCode == KeyCode.ARROW_DOWN ||
                 primaryCode == KeyCode.PAGE_UP || primaryCode == KeyCode.PAGE_DOWN ||
@@ -167,15 +138,12 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
                 primaryCode == KeyCode.MOVE_START_OF_LINE || primaryCode == KeyCode.MOVE_END_OF_LINE ||
                 primaryCode == KeyCode.MOVE_START_OF_PAGE || primaryCode == KeyCode.MOVE_END_OF_PAGE
 
-        // If Shift is physically held and a cursor key is pressed, activate selection mode
-        // on-the-fly (same as CAPS_LOCK mode but driven by the live hold state)
-        val shiftHeldSelection = isShiftHeld && isCursorMoveCode
-        if (shiftHeldSelection && selectionAnchor < 0) {
-            selectionAnchor = connection.expectedSelectionStart
-            selectionCursor = selectionAnchor
+        if (!isCursorMoveCode) {
+            selectionAnchor = -1
+            selectionCursor = -1
         }
 
-        val currentMeta = if ((isShiftSelectionMode && Settings.getValues().mShiftSelectionMode || shiftHeldSelection) && isCursorMoveCode) {
+        val currentMeta = if (isShiftSelectionMode && isCursorMoveCode) {
             metaState or KeyEvent.META_SHIFT_ON
         } else {
             metaState
@@ -190,11 +158,6 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         }
         latinIME.onEvent(event)
         metaAfterCodeInput(primaryCode)
-        if (isShiftSelectionMode && !isCursorMoveCode && primaryCode != KeyCode.CAPS_LOCK && primaryCode != KeyCode.SHIFT) {
-            isShiftSelectionMode = false
-            selectionAnchor = -1
-            selectionCursor = -1
-        }
     }
 
     override fun onTextInput(text: String?) = latinIME.onTextInput(text)
@@ -210,6 +173,8 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     // User released a finger outside any key
     override fun onCancelInput() {
         cursorMovedInSpaceSwipe = false
+        selectionAnchor = -1
+        selectionCursor = -1
     }
 
     override fun onFinishSlidingInput() =
@@ -272,6 +237,8 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             cursorMovedInSpaceSwipe = false
             inputLogic.restartSuggestionsOnWordTouchedByCursor(settings.current, keyboardSwitcher.currentKeyboardScript)
         }
+        selectionAnchor = -1
+        selectionCursor = -1
     }
 
     override fun toggleNumpad(withSliding: Boolean, forceReturnToAlpha: Boolean): Boolean {
@@ -316,7 +283,6 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     override fun resetMetaState() {
         metaState = 0
-        isShiftSelectionMode = false
         isShiftHeld = false
         selectionAnchor = -1
         selectionCursor = -1
@@ -369,7 +335,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         val absSteps = kotlin.math.abs(steps)
         val keyCode = if (steps < 0) KeyEvent.KEYCODE_DPAD_UP else KeyEvent.KEYCODE_DPAD_DOWN
 
-        val metaForEvent = if ((isShiftSelectionMode && Settings.getValues().mShiftSelectionMode) || isShiftHeld) {
+        val metaForEvent = if (isShiftSelectionMode) {
             KeyEvent.META_SHIFT_ON
         } else {
             0
@@ -431,7 +397,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             gestureMoveForwardHaptics(text.isNotEmpty())
         }
 
-        if ((isShiftSelectionMode && Settings.getValues().mShiftSelectionMode) || isShiftHeld) {
+        if (isShiftSelectionMode) {
             if (!cursorMovedInSpaceSwipe) {
                 inputLogic.finishInput()
             }
