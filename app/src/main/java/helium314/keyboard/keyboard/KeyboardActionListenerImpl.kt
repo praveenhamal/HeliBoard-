@@ -173,8 +173,10 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     // User released a finger outside any key
     override fun onCancelInput() {
         cursorMovedInSpaceSwipe = false
-        selectionAnchor = -1
-        selectionCursor = -1
+        if (!isShiftSelectionMode) {
+            selectionAnchor = -1
+            selectionCursor = -1
+        }
     }
 
     override fun onFinishSlidingInput() =
@@ -237,8 +239,10 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             cursorMovedInSpaceSwipe = false
             inputLogic.restartSuggestionsOnWordTouchedByCursor(settings.current, keyboardSwitcher.currentKeyboardScript)
         }
-        selectionAnchor = -1
-        selectionCursor = -1
+        if (!isShiftSelectionMode) {
+            selectionAnchor = -1
+            selectionCursor = -1
+        }
     }
 
     override fun toggleNumpad(withSliding: Boolean, forceReturnToAlpha: Boolean): Boolean {
@@ -362,6 +366,84 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         // for RTL languages we want to invert pointer movement
         val rtl = RichInputMethodManager.getInstance().currentSubtype.isRtlSubtype
         val steps = if (rtl) -rawSteps else rawSteps
+
+        if (isShiftSelectionMode) {
+            if (!cursorMovedInSpaceSwipe) {
+                inputLogic.finishInput()
+            }
+            cursorMovedInSpaceSwipe = true
+
+            val currentSelStart = max(0, connection.expectedSelectionStart)
+            val currentSelEnd = max(0, connection.expectedSelectionEnd)
+            val hasValidSelection = selectionAnchor >= 0 &&
+                    currentSelStart == min(selectionAnchor, selectionCursor) &&
+                    currentSelEnd == max(selectionAnchor, selectionCursor)
+
+            if (!hasValidSelection) {
+                if (steps < 0) {
+                    selectionAnchor = currentSelEnd
+                    selectionCursor = currentSelStart
+                } else {
+                    selectionAnchor = currentSelStart
+                    selectionCursor = currentSelEnd
+                }
+            }
+
+            val moveSteps: Int
+            if (steps < 0) {
+                val text = if (selectionCursor <= selectionAnchor) {
+                    connection.getTextBeforeCursor(-steps * 4, 0)
+                } else {
+                    connection.getSelectedText(0) ?: connection.getTextBeforeCursor(-steps * 4, 0)
+                } ?: return false
+
+                moveSteps = negativeMoveSteps(text, steps)
+                if (moveSteps == 0) {
+                    if (text.isEmpty() && selectionCursor <= 0) {
+                        return true
+                    }
+                    repeat(-steps) {
+                        onCodeInput(if (rtl) KeyCode.ARROW_RIGHT else KeyCode.ARROW_LEFT, Constants.NOT_A_COORDINATE,
+                            Constants.NOT_A_COORDINATE, false)
+                    }
+                    if (text.isNotEmpty()) {
+                        gestureMoveBackHaptics()
+                    }
+                    return true
+                }
+                gestureMoveBackHaptics()
+            } else {
+                val text = if (selectionCursor >= selectionAnchor) {
+                    connection.getTextAfterCursor(steps * 4, 0)
+                } else {
+                    connection.getSelectedText(0) ?: connection.getTextAfterCursor(steps * 4, 0)
+                } ?: return false
+
+                moveSteps = positiveMoveSteps(text, steps)
+                if (moveSteps == 0) {
+                    if (text.isEmpty()) {
+                        return true
+                    }
+                    repeat(steps) {
+                        onCodeInput(if (rtl) KeyCode.ARROW_LEFT else KeyCode.ARROW_RIGHT, Constants.NOT_A_COORDINATE,
+                            Constants.NOT_A_COORDINATE, false)
+                    }
+                    if (text.isNotEmpty()) {
+                        gestureMoveForwardHaptics(true)
+                    }
+                    return true
+                }
+                gestureMoveForwardHaptics(text.isNotEmpty())
+            }
+
+            selectionCursor += moveSteps
+            if (selectionCursor < 0) selectionCursor = 0
+            val selStart = min(selectionAnchor, selectionCursor)
+            val selEnd = max(selectionAnchor, selectionCursor)
+            connection.setSelection(selStart, selEnd)
+            return true
+        }
+
         val moveSteps: Int
         if (steps < 0) {
             val text = connection.getTextBeforeCursor(-steps * 4, 0) ?: return false
@@ -395,22 +477,6 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
                 return true
             }
             gestureMoveForwardHaptics(text.isNotEmpty())
-        }
-
-        if (isShiftSelectionMode) {
-            if (!cursorMovedInSpaceSwipe) {
-                inputLogic.finishInput()
-            }
-            cursorMovedInSpaceSwipe = true
-            if (selectionAnchor < 0) {
-                selectionAnchor = connection.expectedSelectionStart
-                selectionCursor = selectionAnchor
-            }
-            selectionCursor += moveSteps
-            val selStart = min(selectionAnchor, selectionCursor)
-            val selEnd = max(selectionAnchor, selectionCursor)
-            connection.setSelection(selStart, selEnd)
-            return true
         }
 
         cursorMovedInSpaceSwipe = true

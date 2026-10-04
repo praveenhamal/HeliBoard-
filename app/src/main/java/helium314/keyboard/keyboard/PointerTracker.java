@@ -10,6 +10,8 @@ import static java.lang.Math.abs;
 
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.view.MotionEvent;
 
@@ -151,6 +153,51 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     // drift so that mStartY = y (anti-wobble tracking) does not prevent up/down detection.
     private int mHorizontalSwipeBaseY;
 
+    private static final int EDGE_SCROLL_INITIAL_DELAY = 200; // ms
+    private static final int EDGE_SCROLL_REPEAT_INTERVAL = 65; // ms
+    private static final Handler sEdgeScrollHandler = new Handler(Looper.getMainLooper());
+    private int mEdgeScrollDirection = 0; // -1 for left, 1 for right, 0 for inactive
+
+    private final Runnable mEdgeScrollRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!mInHorizontalSwipe || mEdgeScrollDirection == 0) {
+                mEdgeScrollDirection = 0;
+                return;
+            }
+            final SettingsValues sv = Settings.getValues();
+            if (sv.mSpaceSwipeHorizontal != KeyboardActionListener.SWIPE_MOVE_CURSOR) {
+                mEdgeScrollDirection = 0;
+                return;
+            }
+            final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyWidth * 0.6f) : sSpacePointerStepX;
+            final boolean atLeft = mLastX <= edgeThreshold;
+            final boolean atRight = mKeyboard != null && mLastX >= mKeyboard.mOccupiedWidth - edgeThreshold;
+            if ((mEdgeScrollDirection < 0 && !atLeft) || (mEdgeScrollDirection > 0 && !atRight)) {
+                mEdgeScrollDirection = 0;
+                return;
+            }
+
+            sListener.onHorizontalSpaceSwipe(mEdgeScrollDirection);
+            mStartX = mLastX;
+            sEdgeScrollHandler.postDelayed(this, EDGE_SCROLL_REPEAT_INTERVAL);
+        }
+    };
+
+    private void startEdgeScroll(final int direction) {
+        if (mEdgeScrollDirection == direction) {
+            return;
+        }
+        stopEdgeScroll();
+        mEdgeScrollDirection = direction;
+        sEdgeScrollHandler.postDelayed(mEdgeScrollRunnable, EDGE_SCROLL_INITIAL_DELAY);
+    }
+
+    private void stopEdgeScroll() {
+        mEdgeScrollDirection = 0;
+        sEdgeScrollHandler.removeCallbacks(mEdgeScrollRunnable);
+    }
+
     // true if keyboard layout has been changed.
     private boolean mKeyboardLayoutHasBeenChanged;
     private int keyboardChangeOccupiedHeightDifference;
@@ -231,6 +278,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     }
 
     public static void cancelAllPointerTrackers() {
+        for (int i = 0; i < sTrackers.size(); ++i) {
+            sTrackers.get(i).stopEdgeScroll();
+        }
         sPointerTrackerQueue.cancelAllPointerTrackers();
     }
 
@@ -694,6 +744,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     }
 
     private void dismissPopupKeysPanel() {
+        stopEdgeScroll();
         if (isShowingPopupKeysPanel()) {
             mPopupKeysPanel.dismissPopupKeysPanel();
             mPopupKeysPanel = null;
@@ -931,6 +982,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     }
 
     private void onKeySwipe(final int code, final int x, final int y, final long eventTime) {
+        mLastX = x;
+        mLastY = y;
         final SettingsValues sv = Settings.getValues();
         final int fastTypingTimeout = 2 * sv.mKeyLongpressTimeout / 3;
         // we don't want keyswipes to start immediately if the user is fast-typing,
@@ -947,6 +1000,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
             // Vertical movement already in progress
             if (mInVerticalSwipe) {
+                stopEdgeScroll();
                 // oneShotSwipe returns true for actions that fire once (numpad, hide keyboard, etc.)
                 // For those we already fired on the first step, so keep returning without re-firing.
                 final int swipeSetting = (dY < 0) ? sv.mSpaceSwipeUp : sv.mSpaceSwipeDown;
@@ -984,6 +1038,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                     // Check if user is intentionally swiping vertically across text lines (iOS trackpad style)
                     // Must exceed a full line threshold and have vertical dominance over horizontal motion
                     if (absDYFromBase >= sSpacePointerStepY && absDYFromBase > (int)(absDX * 1.2f)) {
+                        stopEdgeScroll();
                         final int stepsY = dYFromBase / sSpacePointerStepY;
                         if (stepsY != 0) {
                             sListener.onVerticalSpaceSwipe(stepsY);
@@ -1002,6 +1057,17 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                         // Continuous tracking of vertical position prevents small natural thumb arcs/wobbles
                         // from slowly accumulating into an unwanted vertical jump while swiping horizontally!
                         mStartY = y;
+
+                        final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyWidth * 0.6f) : sSpacePointerStepX;
+                        final boolean atLeftEdge = x <= edgeThreshold;
+                        final boolean atRightEdge = mKeyboard != null && x >= mKeyboard.mOccupiedWidth - edgeThreshold;
+                        if (atLeftEdge) {
+                            startEdgeScroll(-1);
+                        } else if (atRightEdge) {
+                            startEdgeScroll(1);
+                        } else {
+                            stopEdgeScroll();
+                        }
                     }
                 } else {
                     final int stepsX = dX / stepX;
@@ -1029,8 +1095,19 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                     if (sListener.onHorizontalSpaceSwipe(stepsX)) {
                         mStartX += stepsX * stepX;
                     }
+                    if (isCursorMove) {
+                        final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyWidth * 0.6f) : sSpacePointerStepX;
+                        final boolean atLeftEdge = x <= edgeThreshold;
+                        final boolean atRightEdge = mKeyboard != null && x >= mKeyboard.mOccupiedWidth - edgeThreshold;
+                        if (atLeftEdge) {
+                            startEdgeScroll(-1);
+                        } else if (atRightEdge) {
+                            startEdgeScroll(1);
+                        }
+                    }
                 }
             } else {
+                stopEdgeScroll();
                 final boolean isVerticalCursorMove = (sv.mSpaceSwipeUp == KeyboardActionListener.SWIPE_MOVE_CURSOR
                         || sv.mSpaceSwipeDown == KeyboardActionListener.SWIPE_MOVE_CURSOR);
                 final int stepY = isVerticalCursorMove ? sSpacePointerStepY : sPointerStep;
@@ -1053,6 +1130,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 }
             }
         } else if (code == KeyCode.DELETE) {
+            stopEdgeScroll();
             // Delete slider
             int steps = (x - mStartX) / sPointerStep;
             if (steps != 0) {
@@ -1139,6 +1217,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     }
 
     private void onUpEventInternal(final int x, final int y, final long eventTime) {
+        stopEdgeScroll();
         sTimerProxy.cancelKeyTimersOf(this);
         final boolean isInDraggingFinger = mIsInDraggingFinger;
         final boolean isInSlidingKeyInput = mIsInSlidingKeyInput;
@@ -1205,6 +1284,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
     @Override
     public void cancelTrackingForAction() {
+        stopEdgeScroll();
         if (isShowingPopupKeysPanel()) {
             return;
         }
@@ -1284,6 +1364,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     }
 
     private void onCancelEventInternal() {
+        stopEdgeScroll();
         sTimerProxy.cancelKeyTimersOf(this);
         setReleasedKeyGraphics(mCurrentKey, true);
         resetKeySelectionByDraggingFinger();
