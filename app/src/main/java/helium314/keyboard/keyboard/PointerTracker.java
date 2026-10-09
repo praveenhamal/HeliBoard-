@@ -173,9 +173,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 mEdgeScrollDirection = 0;
                 return;
             }
-            final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyWidth * 0.6f) : sSpacePointerStepX;
-            final boolean atLeft = mLastX <= edgeThreshold;
-            final boolean atRight = mKeyboard != null && mLastX >= mKeyboard.mOccupiedWidth - edgeThreshold;
+            final boolean atLeft = isAtLeftEdge(mLastX);
+            final boolean atRight = isAtRightEdge(mLastX);
             if ((mEdgeScrollDirection < 0 && !atLeft) || (mEdgeScrollDirection > 0 && !atRight)) {
                 mEdgeScrollDirection = 0;
                 return;
@@ -205,9 +204,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 updateEdgeGlow();
                 return;
             }
-            final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyHeight * 0.6f) : sSpacePointerStepY;
-            final boolean atTop = mLastY <= edgeThreshold;
-            final boolean atBottom = mKeyboard != null && mLastY >= mKeyboard.mOccupiedHeight - edgeThreshold;
+            final boolean atTop = isAtTopEdge(mLastY);
+            final boolean atBottom = isAtBottomEdge(mLastY);
             if ((mVerticalEdgeScrollDirection < 0 && !atTop) || (mVerticalEdgeScrollDirection > 0 && !atBottom)) {
                 mVerticalEdgeScrollDirection = 0;
                 updateEdgeGlow();
@@ -263,6 +261,35 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             sDrawingProxy.setCursorMovementEdgeGlow(
                     mEdgeScrollDirection, mVerticalEdgeScrollDirection, mLastX, mLastY);
         }
+    }
+
+    private boolean isAtLeftEdge(final int x) {
+        final int edgeThreshold = mKeyboard != null
+                ? (int)(mKeyboard.mMostCommonKeyWidth * 0.6f)
+                : sSpacePointerStepX;
+        return x <= edgeThreshold;
+    }
+
+    private boolean isAtRightEdge(final int x) {
+        if (mKeyboard == null) return false;
+        final int edgeThreshold = (int)(mKeyboard.mMostCommonKeyWidth * 0.6f);
+        return x >= mKeyboard.mOccupiedWidth - edgeThreshold;
+    }
+
+    private boolean isAtTopEdge(final int y) {
+        final int edgeThreshold = mKeyboard != null
+                ? (int)(mKeyboard.mMostCommonKeyHeight * 0.6f)
+                : sSpacePointerStepY;
+        return y <= edgeThreshold;
+    }
+
+    private boolean isAtBottomEdge(final int y) {
+        if (mKeyboard == null) return false;
+        // Spacebar is on the bottom row, so a large edge threshold (e.g. 0.6f) triggers
+        // immediately during normal horizontal swipes. Position the bottom edge detection
+        // lower on the edge (0.15f of key height) so it only detects when moving right to the bottom edge.
+        final int edgeThreshold = Math.max(1, (int)(mKeyboard.mMostCommonKeyHeight * 0.15f));
+        return y >= mKeyboard.mOccupiedHeight - edgeThreshold;
     }
 
     // true if keyboard layout has been changed.
@@ -1104,9 +1131,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                     }
                 }
                 if (isVerticalCursorMove) {
-                    final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyHeight * 0.6f) : sSpacePointerStepY;
-                    final boolean atTopEdge = y <= edgeThreshold;
-                    final boolean atBottomEdge = mKeyboard != null && y >= mKeyboard.mOccupiedHeight - edgeThreshold;
+                    final boolean atTopEdge = isAtTopEdge(y);
+                    final boolean atBottomEdge = isAtBottomEdge(y);
                     if (atTopEdge) {
                         startVerticalEdgeScroll(-1);
                     } else if (atBottomEdge) {
@@ -1153,9 +1179,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                         // Absorb minor vertical drift so thumb arcs don't accumulate.
                         mStartY = y;
 
-                        final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyWidth * 0.6f) : sSpacePointerStepX;
-                        final boolean atLeftEdge = x <= edgeThreshold;
-                        final boolean atRightEdge = mKeyboard != null && x >= mKeyboard.mOccupiedWidth - edgeThreshold;
+                        final boolean atLeftEdge = isAtLeftEdge(x);
+                        final boolean atRightEdge = isAtRightEdge(x);
                         if (atLeftEdge) {
                             startEdgeScroll(-1);
                         } else if (atRightEdge) {
@@ -1165,9 +1190,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                         }
                     }
 
-                    final int edgeThresholdY = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyHeight * 0.6f) : sSpacePointerStepY;
-                    final boolean atTopEdge = y <= edgeThresholdY;
-                    final boolean atBottomEdge = mKeyboard != null && y >= mKeyboard.mOccupiedHeight - edgeThresholdY;
+                    final boolean atTopEdge = isAtTopEdge(y);
+                    final boolean atBottomEdge = isAtBottomEdge(y);
                     if (atTopEdge) {
                         startVerticalEdgeScroll(-1);
                     } else if (atBottomEdge) {
@@ -1202,17 +1226,15 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                         mStartX += stepsX * stepX;
                     }
                     if (isCursorMove) {
-                        final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyWidth * 0.6f) : sSpacePointerStepX;
-                        final boolean atLeftEdge = x <= edgeThreshold;
-                        final boolean atRightEdge = mKeyboard != null && x >= mKeyboard.mOccupiedWidth - edgeThreshold;
+                        final boolean atLeftEdge = isAtLeftEdge(x);
+                        final boolean atRightEdge = isAtRightEdge(x);
                         if (atLeftEdge) {
                             startEdgeScroll(-1);
                         } else if (atRightEdge) {
                             startEdgeScroll(1);
                         }
-                        final int edgeThresholdY = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyHeight * 0.6f) : sSpacePointerStepY;
-                        final boolean atTopEdge = y <= edgeThresholdY;
-                        final boolean atBottomEdge = mKeyboard != null && y >= mKeyboard.mOccupiedHeight - edgeThresholdY;
+                        final boolean atTopEdge = isAtTopEdge(y);
+                        final boolean atBottomEdge = isAtBottomEdge(y);
                         if (atTopEdge) {
                             startVerticalEdgeScroll(-1);
                         } else if (atBottomEdge) {
@@ -1246,9 +1268,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                         }
                     }
                     if (isVerticalCursorMove) {
-                        final int edgeThreshold = mKeyboard != null ? (int)(mKeyboard.mMostCommonKeyHeight * 0.6f) : sSpacePointerStepY;
-                        final boolean atTopEdge = y <= edgeThreshold;
-                        final boolean atBottomEdge = mKeyboard != null && y >= mKeyboard.mOccupiedHeight - edgeThreshold;
+                        final boolean atTopEdge = isAtTopEdge(y);
+                        final boolean atBottomEdge = isAtBottomEdge(y);
                         if (atTopEdge) {
                             startVerticalEdgeScroll(-1);
                         } else if (atBottomEdge) {
