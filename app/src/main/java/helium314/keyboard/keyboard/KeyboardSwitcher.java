@@ -72,6 +72,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private FrameLayout mStripContainer;
     private ClipboardHistoryView mClipboardHistoryView;
     private helium314.keyboard.keyboard.calculator.CalcInputView mCalcInputView;
+    private helium314.keyboard.keyboard.ai.AiPanelView mAiPanelView;
     private View mKeyboardClipEditPanel;
     private android.widget.EditText mClipEditText;
     private android.widget.EditText mClipEditTrigger;
@@ -351,6 +352,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mClipboardHistoryView.setVisibility(View.GONE);
         mClipboardHistoryView.stopClipboardHistory();
         if (mCalcInputView != null) mCalcInputView.close();
+        if (mAiPanelView != null) mAiPanelView.close();
         if (mKeyboardClipEditPanel != null && !isShowingClipEdit()) mKeyboardClipEditPanel.setVisibility(View.GONE);
     }
 
@@ -480,6 +482,64 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         // Switching keyboard state during a touch-event callback can cause the IME window
         // to dismiss; posting avoids that timing issue.
         mLatinIME.mHandler.post(this::setAlphabetKeyboard);
+    }
+
+    // ── AI panel ─────────────────────────────────────────────────────────────
+
+    /** Called from InputLogic when the AI toolbar key is tapped. */
+    public void openAiPanel() {
+        if (mAiPanelView == null || mKeyboardView == null) return;
+        final android.content.SharedPreferences prefs = KtxKt.prefs(mLatinIME);
+        if (!helium314.keyboard.latin.ai.AiClient.INSTANCE.isConfigured(prefs)) {
+            showToast(mLatinIME.getString(R.string.ai_no_key), true);
+            return;
+        }
+        if (mLatinIME.getCurrentInputEditorInfo() != null
+                && Settings.getValues().mInputAttributes.mIsPasswordField) {
+            showToast(mLatinIME.getString(R.string.ai_password_field), true);
+            return;
+        }
+        final String selected = mLatinIME.getSelectedTextForAi();
+        if (selected == null) {
+            showToast(mLatinIME.getString(R.string.ai_select_text_first), true);
+            return;
+        }
+        // the panel takes the place (and size) of the keyboard
+        final float density = mLatinIME.getResources().getDisplayMetrics().density;
+        final int height = Math.max(mKeyboardView.getHeight(), (int) (220 * density));
+        mAiPanelView.getLayoutParams().height = height;
+        mAiPanelView.open(selected);
+        mKeyboardView.setVisibility(View.GONE);
+        mSuggestionStripView.setVisibility(View.GONE);
+        mStripContainer.setVisibility(View.GONE);
+        mLatinIME.updateInputViewShown();
+    }
+
+    public boolean isShowingAiPanel() {
+        return mAiPanelView != null && mAiPanelView.getVisibility() == View.VISIBLE;
+    }
+
+    /** Replaces the selected text with the AI result and goes back to the keyboard. */
+    private void applyAiResult(final String text) {
+        mLatinIME.onTextInput(text); // commitText replaces the current selection
+        closeAiPanel();
+    }
+
+    public void closeAiPanel() {
+        if (mAiPanelView != null) mAiPanelView.close();
+        final int stripVisibility = mLatinIME.hasSuggestionStripView() ? View.VISIBLE : View.GONE;
+        if (mSuggestionStripView != null) mSuggestionStripView.setVisibility(stripVisibility);
+        if (mStripContainer != null) mStripContainer.setVisibility(stripVisibility);
+        // the keyboard itself was never changed, only hidden
+        if (mKeyboardView != null) mKeyboardView.setVisibility(View.VISIBLE);
+        mLatinIME.updateInputViewShown();
+    }
+
+    /** dims the AI toolbar key when no text is selected */
+    public void updateAiKeyAvailability(final boolean hasSelection) {
+        if (helium314.keyboard.latin.utils.ToolbarUtilsKt.getAiSelectionAvailable() == hasSelection) return;
+        helium314.keyboard.latin.utils.ToolbarUtilsKt.setAiSelectionAvailable(hasSelection);
+        if (mSuggestionStripView != null) mSuggestionStripView.setAiKeyAvailable(hasSelection);
     }
 
     // ── Clipboard edit panel ─────────────────────────────────────────────────
@@ -951,6 +1011,13 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         android.view.View calcView = mCurrentInputView.findViewById(R.id.calc_input_view);
         mCalcInputView = (calcView instanceof helium314.keyboard.keyboard.calculator.CalcInputView)
                 ? (helium314.keyboard.keyboard.calculator.CalcInputView) calcView : null;
+        final View aiPanel = mCurrentInputView.findViewById(R.id.ai_panel);
+        mAiPanelView = (aiPanel instanceof helium314.keyboard.keyboard.ai.AiPanelView)
+                ? (helium314.keyboard.keyboard.ai.AiPanelView) aiPanel : null;
+        if (mAiPanelView != null) {
+            mAiPanelView.setOnApply(text -> { applyAiResult(text); return kotlin.Unit.INSTANCE; });
+            mAiPanelView.setOnCancel(() -> { closeAiPanel(); return kotlin.Unit.INSTANCE; });
+        }
         // Find clipboard edit panel (lives in main_keyboard_frame above the keyboard)
         mKeyboardClipEditPanel = mCurrentInputView.findViewById(R.id.keyboard_clip_edit_panel);
         if (mKeyboardClipEditPanel != null) {

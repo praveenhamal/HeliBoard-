@@ -146,6 +146,7 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.PAGE_END -> R.drawable.ic_page_end
                     ToolbarKey.SPLIT -> R.drawable.ic_ime_switcher
                     ToolbarKey.CALCULATOR -> R.drawable.sym_keyboard_calculator_holo
+                    ToolbarKey.AI -> R.drawable.sym_keyboard_ai
                 })
             }
         } }
@@ -207,6 +208,7 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.PAGE_END -> R.drawable.ic_page_end
                     ToolbarKey.SPLIT -> R.drawable.ic_ime_switcher
                     ToolbarKey.CALCULATOR -> R.drawable.sym_keyboard_calculator_lxx
+                    ToolbarKey.AI -> R.drawable.sym_keyboard_ai
                 })
             }
         } }
@@ -268,6 +270,7 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.PAGE_END -> R.drawable.ic_page_end_rounded
                     ToolbarKey.SPLIT -> R.drawable.ic_ime_switcher
                     ToolbarKey.CALCULATOR -> R.drawable.sym_keyboard_calculator_rounded
+                    ToolbarKey.AI -> R.drawable.sym_keyboard_ai
                 })
             }
         } }

@@ -27,6 +27,7 @@ fun createToolbarKey(context: Context, key: ToolbarKey): ImageButton {
     button.tag = key
     button.contentDescription = key.name.lowercase().getStringResourceOrName("", context)
     setToolbarButtonActivatedState(button)
+    if (key == AI) button.alpha = if (aiSelectionAvailable) 1f else 0.4f
     button.setImageDrawable(KeyboardIconsSet.instance.getNewDrawable(key.name, context))
     return button
 }
@@ -86,6 +87,7 @@ fun getCodeForToolbarKey(key: ToolbarKey) = Settings.getInstance().getCustomTool
     PAGE_END -> KeyCode.MOVE_END_OF_PAGE
     SPLIT -> KeyCode.SPLIT_LAYOUT
     CALCULATOR -> KeyCode.CALCULATOR
+    AI -> KeyCode.AI_GRAMMAR
 }
 
 fun getCodeForToolbarKeyLongClick(key: ToolbarKey) = Settings.getInstance().getCustomToolbarLongpressCode(key) ?: when (key) {
@@ -111,7 +113,7 @@ fun getCodeForToolbarKeyLongClick(key: ToolbarKey) = Settings.getInstance().getC
 enum class ToolbarKey {
     VOICE, CLIPBOARD, NUMPAD, UNDO, REDO, SETTINGS, SELECT_ALL, SELECT_WORD, COPY, CUT, PASTE, ONE_HANDED, SPLIT,
     INCOGNITO, AUTOCORRECT, CLEAR_CLIPBOARD, CLOSE_HISTORY, EMOJI, LEFT, RIGHT, UP, DOWN, WORD_LEFT, WORD_RIGHT,
-    PAGE_UP, PAGE_DOWN, FULL_LEFT, FULL_RIGHT, PAGE_START, PAGE_END, CALCULATOR
+    PAGE_UP, PAGE_DOWN, FULL_LEFT, FULL_RIGHT, PAGE_START, PAGE_END, CALCULATOR, AI
 }
 
 enum class ToolbarMode {
@@ -120,11 +122,11 @@ enum class ToolbarMode {
 
 val toolbarKeyStrings = entries.associateWithTo(EnumMap(ToolbarKey::class.java)) { it.toString().lowercase(Locale.US) }
 
-val defaultToolbarPref = "SETTINGS:true|CALCULATOR:true|CLIPBOARD:true|VOICE:false|UNDO:true|REDO:true|LEFT:true|RIGHT:true|UP:true|DOWN:true|PAGE_UP:true|PAGE_DOWN:true|SELECT_ALL:true|SELECT_WORD:false|COPY:true|PASTE:true|NUMPAD:false|CUT:false|ONE_HANDED:false|SPLIT:false|INCOGNITO:false|AUTOCORRECT:false|CLEAR_CLIPBOARD:true|EMOJI:false|WORD_LEFT:false|WORD_RIGHT:false|FULL_LEFT:false|FULL_RIGHT:false|PAGE_START:false|PAGE_END:false"
+val defaultToolbarPref = "SETTINGS:true|CALCULATOR:true|CLIPBOARD:true|VOICE:false|UNDO:true|REDO:true|LEFT:true|RIGHT:true|UP:true|DOWN:true|PAGE_UP:true|PAGE_DOWN:true|SELECT_ALL:true|SELECT_WORD:false|COPY:true|PASTE:true|NUMPAD:false|CUT:false|ONE_HANDED:false|SPLIT:false|INCOGNITO:false|AUTOCORRECT:false|CLEAR_CLIPBOARD:true|EMOJI:false|WORD_LEFT:false|WORD_RIGHT:false|FULL_LEFT:false|FULL_RIGHT:false|PAGE_START:false|PAGE_END:false|AI:false"
 
-val defaultPinnedToolbarPref = "SELECT_ALL:true|COPY:true|CUT:false|CLIPBOARD:false|VOICE:false|NUMPAD:false|UNDO:false|REDO:false|SETTINGS:false|SELECT_WORD:false|PASTE:true|ONE_HANDED:false|SPLIT:false|INCOGNITO:false|AUTOCORRECT:false|CLEAR_CLIPBOARD:false|EMOJI:false|LEFT:false|RIGHT:false|UP:false|DOWN:false|WORD_LEFT:false|WORD_RIGHT:false|PAGE_UP:false|PAGE_DOWN:false|FULL_LEFT:false|FULL_RIGHT:false|PAGE_START:false|PAGE_END:false|CALCULATOR:false"
+val defaultPinnedToolbarPref = "SELECT_ALL:true|COPY:true|CUT:false|CLIPBOARD:false|VOICE:false|NUMPAD:false|UNDO:false|REDO:false|SETTINGS:false|SELECT_WORD:false|PASTE:true|ONE_HANDED:false|SPLIT:false|INCOGNITO:false|AUTOCORRECT:false|CLEAR_CLIPBOARD:false|EMOJI:false|LEFT:false|RIGHT:false|UP:false|DOWN:false|WORD_LEFT:false|WORD_RIGHT:false|PAGE_UP:false|PAGE_DOWN:false|FULL_LEFT:false|FULL_RIGHT:false|PAGE_START:false|PAGE_END:false|CALCULATOR:false|AI:false"
 
-val defaultClipboardToolbarPref = "CLEAR_CLIPBOARD:true|UP:false|DOWN:false|LEFT:false|RIGHT:false|UNDO:false|CUT:false|COPY:false|PASTE:true|SELECT_WORD:false|CLOSE_HISTORY:true|VOICE:false|CLIPBOARD:false|NUMPAD:false|REDO:false|SETTINGS:false|SELECT_ALL:false|ONE_HANDED:false|SPLIT:false|INCOGNITO:false|AUTOCORRECT:false|EMOJI:false|WORD_LEFT:false|WORD_RIGHT:false|PAGE_UP:false|PAGE_DOWN:false|FULL_LEFT:false|FULL_RIGHT:false|PAGE_START:false|PAGE_END:false|CALCULATOR:false"
+val defaultClipboardToolbarPref = "CLEAR_CLIPBOARD:true|UP:false|DOWN:false|LEFT:false|RIGHT:false|UNDO:false|CUT:false|COPY:false|PASTE:true|SELECT_WORD:false|CLOSE_HISTORY:true|VOICE:false|CLIPBOARD:false|NUMPAD:false|REDO:false|SETTINGS:false|SELECT_ALL:false|ONE_HANDED:false|SPLIT:false|INCOGNITO:false|AUTOCORRECT:false|EMOJI:false|WORD_LEFT:false|WORD_RIGHT:false|PAGE_UP:false|PAGE_DOWN:false|FULL_LEFT:false|FULL_RIGHT:false|PAGE_START:false|PAGE_END:false|CALCULATOR:false|AI:false"
 
 /** add missing keys, typically because a new key has been added */
 fun upgradeToolbarPrefs(prefs: SharedPreferences) {
@@ -154,11 +156,24 @@ private fun upgradeToolbarPref(prefs: SharedPreferences, pref: String, default: 
     prefs.edit { putString(pref, list.joinToString(Separators.ENTRY)) }
 }
 
-fun getEnabledToolbarKeys(prefs: SharedPreferences) = getEnabledToolbarKeys(prefs, Settings.PREF_TOOLBAR_KEYS, defaultToolbarPref)
+/** The AI key is not user-orderable: it shows up (at the end) exactly when "AI grammar" is enabled in the settings. */
+private fun withAiKey(prefs: SharedPreferences, keys: List<ToolbarKey>, add: Boolean): List<ToolbarKey> {
+    val aiEnabled = prefs.getBoolean(Settings.PREF_AI_GRAMMAR_ENABLED, Defaults.PREF_AI_GRAMMAR_ENABLED)
+    val without = keys.filter { it != AI }
+    return if (aiEnabled && add) without + AI else without
+}
 
-fun getPinnedToolbarKeys(prefs: SharedPreferences) = getEnabledToolbarKeys(prefs, Settings.PREF_PINNED_TOOLBAR_KEYS, defaultPinnedToolbarPref)
+/** true while text is selected in the editor, the AI key is dimmed otherwise */
+@Volatile var aiSelectionAvailable = false
 
-fun getEnabledClipboardToolbarKeys(prefs: SharedPreferences) = getEnabledToolbarKeys(prefs, Settings.PREF_CLIPBOARD_TOOLBAR_KEYS, defaultClipboardToolbarPref)
+fun getEnabledToolbarKeys(prefs: SharedPreferences): List<ToolbarKey> =
+    withAiKey(prefs, getEnabledToolbarKeys(prefs, Settings.PREF_TOOLBAR_KEYS, defaultToolbarPref), true)
+
+fun getPinnedToolbarKeys(prefs: SharedPreferences): List<ToolbarKey> =
+    withAiKey(prefs, getEnabledToolbarKeys(prefs, Settings.PREF_PINNED_TOOLBAR_KEYS, defaultPinnedToolbarPref), false)
+
+fun getEnabledClipboardToolbarKeys(prefs: SharedPreferences): List<ToolbarKey> =
+    withAiKey(prefs, getEnabledToolbarKeys(prefs, Settings.PREF_CLIPBOARD_TOOLBAR_KEYS, defaultClipboardToolbarPref), false)
 
 fun addPinnedKey(prefs: SharedPreferences, key: ToolbarKey) {
     // remove the existing version of this key and add the enabled one after the last currently enabled key

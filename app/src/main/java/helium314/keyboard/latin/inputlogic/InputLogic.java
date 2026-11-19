@@ -877,6 +877,9 @@ public final class InputLogic {
             case KeyCode.CALCULATOR:
                 KeyboardSwitcher.getInstance().setCalculatorKeyboard();
                 break;
+            case KeyCode.AI_GRAMMAR:
+                KeyboardSwitcher.getInstance().openAiPanel();
+                break;
             case KeyCode.CAPS_LOCK:
                 if (KeyboardSwitcher.getInstance().getKeyboard() == null
                             || KeyboardSwitcher.getInstance().getKeyboard().mId.isAlphabetKeyboard()) {

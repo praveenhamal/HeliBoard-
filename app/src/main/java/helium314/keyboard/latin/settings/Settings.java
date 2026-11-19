@@ -163,6 +163,9 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final String PREF_ENABLED_SUBTYPES = "enabled_subtypes";
     public static final String PREF_SELECTED_SUBTYPE = "selected_subtype";
     public static final String PREF_URL_DETECTION = "url_detection";
+    public static final String PREF_AI_GRAMMAR_ENABLED = "ai_grammar_enabled";
+    public static final String PREF_AI_API_KEY = "ai_api_key";
+    public static final String PREF_AI_MODEL = "ai_model";
     public static final String PREF_DONT_SHOW_MISSING_DICTIONARY_DIALOG = "dont_show_missing_dict_dialog";
     public static final String PREF_QUICK_PIN_TOOLBAR_KEYS = "quick_pin_toolbar_keys";
     public static final String PREF_PINNED_TOOLBAR_KEYS = "pinned_toolbar_keys";

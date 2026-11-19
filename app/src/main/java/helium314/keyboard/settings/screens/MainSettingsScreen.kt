@@ -38,6 +38,7 @@ fun MainSettingsScreen(
     onClickGestureTyping: () -> Unit,
     onClickDataGathering: () -> Unit,
     onClickAdvanced: () -> Unit,
+    onClickAiGrammar: () -> Unit,
     onClickAppearance: () -> Unit,
     onClickLanguage: () -> Unit,
     onClickLayouts: () -> Unit,
@@ -104,6 +105,11 @@ fun MainSettingsScreen(
                     icon = R.drawable.ic_dictionary
                 ) { NextScreenIcon() }
                 Preference(
+                    name = stringResource(R.string.settings_screen_ai_grammar),
+                    onClick = onClickAiGrammar,
+                    icon = R.drawable.sym_keyboard_ai,
+                ) { NextScreenIcon() }
+                Preference(
                     name = stringResource(R.string.settings_screen_advanced),
                     onClick = onClickAdvanced,
                     icon = R.drawable.ic_settings_advanced
@@ -124,7 +130,7 @@ private fun PreviewScreen() {
     initPreview(LocalContext.current)
     Theme(previewDark) {
         Surface {
-            MainSettingsScreen({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+            MainSettingsScreen({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
         }
     }
 }

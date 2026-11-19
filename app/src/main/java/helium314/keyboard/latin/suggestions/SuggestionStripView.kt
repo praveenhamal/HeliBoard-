@@ -504,6 +504,12 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         }
     }
 
+    fun setAiKeyAvailable(available: Boolean) {
+        val alpha = if (available) 1f else 0.4f
+        toolbar.findViewWithTag<View>(ToolbarKey.AI)?.alpha = alpha
+        pinnedKeys.findViewWithTag<View>(ToolbarKey.AI)?.alpha = alpha
+    }
+
     fun updateVoiceKey() {
         val show = Settings.getValues().mShowsVoiceInputKey
         toolbar.findViewWithTag<View>(ToolbarKey.VOICE)?.isVisible = show

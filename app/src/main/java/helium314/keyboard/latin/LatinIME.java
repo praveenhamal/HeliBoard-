@@ -95,6 +95,7 @@ import java.util.concurrent.TimeUnit;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import android.text.TextUtils;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
@@ -1059,6 +1060,7 @@ public class LatinIME extends InputMethodService implements
         // not attempt recorrection. This is true even with a hardware keyboard connected: if the
         // view is not displayed we have no means of showing suggestions anyway, and if it is then
         // we want to show suggestions anyway.
+        mKeyboardSwitcher.updateAiKeyAvailability(newSelStart != newSelEnd);
         final SettingsValues settingsValues = mSettings.getCurrent();
         if (isInputViewShown()
                 && mInputLogic.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
@@ -1417,6 +1419,14 @@ public class LatinIME extends InputMethodService implements
                         mKeyboardSwitcher.getCurrentKeyboardScript(), mHandler);
         updateStateAfterInputTransaction(completeInputTransaction);
         mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+    }
+
+    /** Text currently selected in the editor, or null if nothing is selected or the field is a password field. Used by the AI panel. */
+    @Nullable
+    public String getSelectedTextForAi() {
+        if (mSettings.getCurrent().mInputAttributes.mIsPasswordField) return null;
+        final CharSequence selected = mInputLogic.mConnection.getSelectedText(0);
+        return TextUtils.isEmpty(selected) ? null : selected.toString();
     }
 
     public void onTextInput(final String rawText) {
