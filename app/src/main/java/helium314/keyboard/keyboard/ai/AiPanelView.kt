@@ -2,8 +2,10 @@
 package helium314.keyboard.keyboard.ai
 
 import android.content.Context
+import android.os.Build
 import android.util.AttributeSet
 import android.view.View
+import android.view.WindowInsets
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -44,10 +46,10 @@ class AiPanelView @JvmOverloads constructor(
         textBox = findViewById(R.id.ai_text)
         applyButton = findViewById(R.id.ai_apply)
         cancelButton = findViewById(R.id.ai_cancel)
-        modeButtons += findViewById<Button>(R.id.ai_proofread) to AiMode.PROOFREAD
-        modeButtons += findViewById<Button>(R.id.ai_formal) to AiMode.FORMAL
-        modeButtons += findViewById<Button>(R.id.ai_casual) to AiMode.CASUAL
-        modeButtons += findViewById<Button>(R.id.ai_human) to AiMode.HUMAN
+        modeButtons.clear()
+        findViewById<Button>(R.id.ai_proofread)?.let { modeButtons += it to AiMode.PROOFREAD }
+        findViewById<Button>(R.id.ai_formal)?.let { modeButtons += it to AiMode.FORMAL }
+        findViewById<Button>(R.id.ai_casual)?.let { modeButtons += it to AiMode.CASUAL }
         modeButtons.forEach { (button, mode) -> button.setOnClickListener { run(mode) } }
         cancelButton.setOnClickListener { onCancel?.invoke() }
         applyButton.setOnClickListener {
@@ -64,7 +66,22 @@ class AiPanelView @JvmOverloads constructor(
         textBox.text = selectedText
         updateButtons()
         applyColors()
+        applyOptimalPadding()
         visibility = View.VISIBLE
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        applyOptimalPadding()
+    }
+
+    private fun applyOptimalPadding() {
+        val density = resources.displayMetrics.density
+        val navInset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            rootWindowInsets?.getInsets(WindowInsets.Type.navigationBars())?.bottom ?: 0
+        } else 0
+        val safeBottom = maxOf(navInset, (20 * density).toInt())
+        setPadding(paddingLeft, paddingTop, paddingRight, safeBottom)
     }
 
     fun close() {

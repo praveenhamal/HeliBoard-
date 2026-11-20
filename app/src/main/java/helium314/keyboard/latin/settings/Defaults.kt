@@ -151,6 +151,8 @@ object Defaults {
     const val PREF_SELECTED_SUBTYPE = "en-US§KeyboardLayoutSet=CALCULATOR:calculator,SupportTouchPositionCorrection,TrySuppressingImeSwitcher"
     const val PREF_URL_DETECTION = false
     const val PREF_AI_GRAMMAR_ENABLED = false
+    const val PREF_AI_PROVIDER = "auto"
+    const val PREF_AI_ENDPOINT = ""
     const val PREF_DONT_SHOW_MISSING_DICTIONARY_DIALOG = false
     const val PREF_TOOLBAR_MODE = "EXPANDABLE"
     const val PREF_TOOLBAR_HIDING_GLOBAL = true

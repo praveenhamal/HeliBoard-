@@ -352,11 +352,16 @@
     <string name="settings_screen_ai_grammar">AI grammar</string>
     <string name="ai_grammar_title">AI grammar</string>
     <string name="ai_grammar_summary">Proofread or rewrite selected text with an AI provider. The selected text is sent to that provider.</string>
+    <string name="ai_provider_title">Provider</string>
+    <string name="ai_provider_summary">Choose your AI service or auto-detect</string>
+    <string name="ai_provider_auto">Auto-detect from API key</string>
     <string name="ai_api_key_title">API key</string>
     <string name="ai_api_key_missing">Not set</string>
-    <string name="ai_api_key_info">Paste an API key from Google Gemini, OpenAI (ChatGPT) or Anthropic (Claude). The provider is detected from the key.</string>
+    <string name="ai_api_key_info">Paste any API key (Gemini, OpenAI, Claude, Groq, DeepSeek, OpenRouter, xAI, etc.). Any custom or future key is supported.</string>
     <string name="ai_model_title">Model (optional)</string>
     <string name="ai_model_summary">Leave empty to use the default model of your provider</string>
+    <string name="ai_endpoint_title">API endpoint URL (optional)</string>
+    <string name="ai_endpoint_summary">Leave empty to use the default provider endpoint</string>
     <string name="ai_proofread">Proofread</string>
     <string name="ai_formal">Formal</string>
     <string name="ai_casual">Casual</string>

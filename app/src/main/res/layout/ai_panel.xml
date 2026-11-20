@@ -9,28 +9,32 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="8dp"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="16dp"
     android:visibility="gone">
 
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginBottom="8dp">
-
-        <TextView
-            android:id="@+id/ai_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:padding="10dp"
-            android:textSize="16sp" />
-    </ScrollView>
-
+    <!-- Action buttons at the TOP, safe from soft navigation keys -->
     <LinearLayout
+        android:id="@+id/ai_actions_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
+        android:gravity="center_vertical"
         android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/ai_cancel"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="44dp"
+            android:paddingHorizontal="6dp"
+            android:layout_marginEnd="4dp"
+            android:textSize="18sp"
+            android:text="✕"
+            android:contentDescription="@android:string/cancel" />
 
         <Button
             android:id="@+id/ai_proofread"
@@ -75,44 +79,30 @@
             android:text="@string/ai_casual" />
 
         <Button
-            android:id="@+id/ai_human"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:minWidth="0dp"
-            android:paddingHorizontal="2dp"
-            android:singleLine="true"
-            android:textAllCaps="false"
-            android:textSize="13sp"
-            android:text="@string/ai_human" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/ai_cancel"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:textSize="20sp"
-            android:text="✕"
-            android:contentDescription="@android:string/cancel" />
-
-        <Button
             android:id="@+id/ai_apply"
             style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textSize="20sp"
+            android:minWidth="44dp"
+            android:paddingHorizontal="6dp"
+            android:textSize="18sp"
             android:text="✓"
             android:contentDescription="@android:string/ok" />
     </LinearLayout>
+
+    <!-- Scrollable preview text box -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/ai_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:padding="10dp"
+            android:textSize="16sp" />
+    </ScrollView>
+
 </helium314.keyboard.keyboard.ai.AiPanelView>

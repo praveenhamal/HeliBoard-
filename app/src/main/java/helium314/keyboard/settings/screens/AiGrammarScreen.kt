@@ -2,13 +2,13 @@
 package helium314.keyboard.settings.screens
 
 import android.content.Context
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.material3.Text
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.edit
@@ -20,10 +20,11 @@ import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.getActivity
 import helium314.keyboard.latin.utils.prefs
-import helium314.keyboard.settings.Setting
 import helium314.keyboard.settings.SearchSettingsScreen
+import helium314.keyboard.settings.Setting
 import helium314.keyboard.settings.SettingsActivity
 import helium314.keyboard.settings.dialogs.TextInputDialog
+import helium314.keyboard.settings.preferences.ListPreference
 import helium314.keyboard.settings.preferences.Preference
 import helium314.keyboard.settings.preferences.SwitchPreference
 import helium314.keyboard.settings.preferences.TextInputPreference
@@ -40,8 +41,10 @@ fun AiGrammarScreen(onClickBack: () -> Unit) {
         title = stringResource(R.string.settings_screen_ai_grammar),
         settings = listOf(
             Settings.PREF_AI_GRAMMAR_ENABLED,
+            if (enabled) Settings.PREF_AI_PROVIDER else null,
             if (enabled) Settings.PREF_AI_API_KEY else null,
             if (enabled) Settings.PREF_AI_MODEL else null,
+            if (enabled) Settings.PREF_AI_ENDPOINT else null,
         )
     )
 }
@@ -60,7 +63,7 @@ private fun AiApiKeyDialog(setting: Setting, onDismiss: () -> Unit) {
         initialText = prefs.getString(Settings.PREF_AI_API_KEY, "") ?: "",
         title = { Text(setting.title) },
         description = { Text(stringResource(R.string.ai_api_key_info)) },
-        checkTextValid = { it.isBlank() || AiProvider.detect(it) != null },
+        checkTextValid = { true }, // Any key is accepted
     )
 }
 
@@ -75,19 +78,59 @@ fun createAiGrammarSettings(context: Context) = listOf(
         })
         if (askForKey) AiApiKeyDialog(setting) { askForKey = false }
     },
+    Setting(context, Settings.PREF_AI_PROVIDER, R.string.ai_provider_title, R.string.ai_provider_summary) { setting ->
+        val providerItems = listOf(
+            stringResource(R.string.ai_provider_auto) to "auto",
+            AiProvider.GROQ.displayName to AiProvider.GROQ.id,
+            AiProvider.GEMINI.displayName to AiProvider.GEMINI.id,
+            AiProvider.OPENAI.displayName to AiProvider.OPENAI.id,
+            AiProvider.ANTHROPIC.displayName to AiProvider.ANTHROPIC.id,
+            AiProvider.OPENROUTER.displayName to AiProvider.OPENROUTER.id,
+            AiProvider.DEEPSEEK.displayName to AiProvider.DEEPSEEK.id,
+            AiProvider.XAI.displayName to AiProvider.XAI.id,
+            AiProvider.MISTRAL.displayName to AiProvider.MISTRAL.id,
+            AiProvider.CUSTOM.displayName to AiProvider.CUSTOM.id,
+        )
+        ListPreference(
+            setting = setting,
+            items = providerItems,
+            default = Defaults.PREF_AI_PROVIDER
+        ) {
+            KeyboardSwitcher.getInstance().setThemeNeedsReload()
+        }
+    },
     Setting(context, Settings.PREF_AI_API_KEY, R.string.ai_api_key_title) { setting ->
         var showDialog by rememberSaveable { mutableStateOf(false) }
-        val key = LocalContext.current.prefs().getString(Settings.PREF_AI_API_KEY, "") ?: ""
-        val provider = AiProvider.detect(key)
+        val prefs = LocalContext.current.prefs()
+        val key = prefs.getString(Settings.PREF_AI_API_KEY, "") ?: ""
+        val resolved = AiProvider.resolve(prefs, key)
         Preference(
             name = setting.title,
             onClick = { showDialog = true },
             description = if (key.isBlank()) stringResource(R.string.ai_api_key_missing)
-                else maskKey(key) + (provider?.let { " (${it.name.lowercase()})" } ?: ""),
+                else "${maskKey(key)} (${resolved.displayName})",
         )
         if (showDialog) AiApiKeyDialog(setting) { showDialog = false }
     },
-    Setting(context, Settings.PREF_AI_MODEL, R.string.ai_model_title, R.string.ai_model_summary) {
-        TextInputPreference(it, "")
+    Setting(context, Settings.PREF_AI_MODEL, R.string.ai_model_title, R.string.ai_model_summary) { setting ->
+        val prefs = LocalContext.current.prefs()
+        val key = prefs.getString(Settings.PREF_AI_API_KEY, "") ?: ""
+        val provider = AiProvider.resolve(prefs, key)
+        val defaultModelInfo = "Default: ${provider.defaultModel}"
+        TextInputPreference(
+            setting = setting,
+            default = "",
+            info = defaultModelInfo
+        )
+    },
+    Setting(context, Settings.PREF_AI_ENDPOINT, R.string.ai_endpoint_title, R.string.ai_endpoint_summary) { setting ->
+        val prefs = LocalContext.current.prefs()
+        val key = prefs.getString(Settings.PREF_AI_API_KEY, "") ?: ""
+        val provider = AiProvider.resolve(prefs, key)
+        TextInputPreference(
+            setting = setting,
+            default = "",
+            info = "Default: ${provider.defaultEndpoint}"
+        )
     },
 )
