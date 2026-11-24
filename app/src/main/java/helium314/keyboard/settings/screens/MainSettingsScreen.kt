@@ -39,6 +39,7 @@ fun MainSettingsScreen(
     onClickDataGathering: () -> Unit,
     onClickAdvanced: () -> Unit,
     onClickAiGrammar: () -> Unit,
+    onClickSync: () -> Unit,
     onClickAppearance: () -> Unit,
     onClickLanguage: () -> Unit,
     onClickLayouts: () -> Unit,
@@ -108,6 +109,11 @@ fun MainSettingsScreen(
                     name = stringResource(R.string.settings_screen_ai_grammar),
                     onClick = onClickAiGrammar,
                     icon = R.drawable.sym_keyboard_ai,
+                ) { NextScreenIcon() }
+                Preference(
+                    name = stringResource(R.string.sync_settings_title),
+                    onClick = onClickSync,
+                    icon = R.drawable.ic_cloud_sync,
                 ) { NextScreenIcon() }
                 Preference(
                     name = stringResource(R.string.settings_screen_advanced),

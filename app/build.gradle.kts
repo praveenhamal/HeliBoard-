@@ -137,6 +137,11 @@ dependencies {
     implementation("sh.calvin.reorderable:reorderable:2.4.3") // for easier re-ordering, todo: check 3.0.0
     implementation("com.github.skydoves:colorpicker-compose:1.1.3") // for user-defined colors
 
+    // credentials & google auth for optional sync
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+
     // test
     testImplementation(kotlin("test"))
     testImplementation("junit:junit:4.13.2")

@@ -1,0 +1,12 @@
+name = "sleektype-sync"
+main = "cloudflare-worker/src/index.js"
+compatibility_date = "2026-11-01"
+account_id = "0c815b55cadba1fa86037f35533151e0"
+
+[[kv_namespaces]]
+binding = "SYNC"
+id = "942af3080b5a45ae84fc4a62f3dfbfb8"
+
+[vars]
+# Replace this with your Google Web Client ID from the Google Cloud Console
+GOOGLE_CLIENT_ID = "<web-client-id>.apps.googleusercontent.com"

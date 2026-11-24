@@ -1135,5 +1135,29 @@ New dictionary:
      string will probably be removed once data gathering is finished (end of 2026 latest) -->
     <string name="gesture_data_links">Information on gesture data gathering on:</string>
 
+    <!-- Cloud Sync Settings -->
+    <string name="sync_settings_title">Cloud Sync (E2E Encrypted)</string>
+    <string name="sync_setup_category">Sync Configuration</string>
+    <string name="sync_setup_desc">Sync clipboard history and settings between devices. Your data is end-to-end encrypted with your secret sync code before leaving this phone.</string>
+    <string name="sync_set_client_id">Set Google Web Client ID</string>
+    <string name="sync_set_worker_url">Set Cloudflare Worker URL</string>
+    <string name="sync_clipboard_title">Sync Clipboard History</string>
+    <string name="sync_clipboard_desc">Include copied clips and pinned shortcuts in cloud backup</string>
+    <string name="sync_signed_out_desc">Sign in with Google to enable encrypted cloud backup and multi-device sync.</string>
+    <string name="sync_sign_in_google">Sign in with Google</string>
+    <string name="sync_need_code_desc">This device needs a sync code. If this is your first device, generate a code. If syncing from an existing phone, enter its code.</string>
+    <string name="sync_generate_code">Generate New Code</string>
+    <string name="sync_enter_code">Enter Existing Code</string>
+    <string name="sync_code_label">YOUR SECRET SYNC CODE (SAVE THIS)</string>
+    <string name="sync_copy_code">Copy Code</string>
+    <string name="sync_to_cloud">Sync to Cloud</string>
+    <string name="sync_from_cloud">Sync from Cloud</string>
+    <string name="sync_reset_code">Reset Sync Code</string>
+    <string name="sync_reset_code_warning">Generating a new code will require updating the sync code on all other paired phones. Continue?</string>
+    <string name="sync_reset">Reset</string>
+    <string name="sync_delete_cloud_data">Delete Cloud Backup</string>
+    <string name="sync_delete_cloud_warning">Permanently delete your encrypted data stored in the cloud?</string>
+    <string name="sync_sign_out">Sign Out</string>
+
     <!-- new strings should go above the section for gesture data gathering -->
 </resources>
